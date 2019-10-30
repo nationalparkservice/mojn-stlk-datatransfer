@@ -1,4 +1,7 @@
 library(reticulate)
+library(jsonlite)
+library(httr)
+library(tidyverse)
 
 # Download photos using Python script
 gdb.path <- "M:/MONITORING/StreamsLakes/Data/WY2019/FieldData/Lakes_Annual/STLK_AnnualLakeVisit_20191022.gdb"
@@ -23,6 +26,106 @@ photo.data <- paste(gdb.path, "BenchPhoto", sep = "/")
 download_bench_photos(attTable = photo.table, photoFeatureClass = photo.data, visitFeatureClass = visit.data, dataPhotoLocation = photo.dest, originalsLocation = originals.dest)
 
 # Read tabular data from AGOL
+
+## Get a token with a headless account
+token_resp <- POST("https://nps.maps.arcgis.com/sharing/rest/generateToken",
+                   body = list(username = rstudioapi::showPrompt("Username", "Please enter your AGOL username", default = "mojn_hydro"),
+                               password = rstudioapi::askForPassword("Please enter your AGOL password"),
+                               referer = 'https://irma.nps.gov',
+                               f = 'json'),
+                   encode = "form")
+agol_token <- fromJSON(content(token_resp, type="text", encoding = "UTF-8"))
+
+resp.visit <- GET("https://services1.arcgis.com/fBc8EJBxQRMcHlei/arcgis/rest/services/service_91ba537840c94230a0bdfb2e96385070/FeatureServer/0/query",
+                  query = list(where="1=1",
+                               outFields="*",
+                               f="JSON",
+                               token=agol_token$token))
+visit <- fromJSON(content(resp.visit, type = "text", encoding = "UTF-8"))
+visit <- visit$features$attributes %>%
+  as_tibble() %>%
+  mutate_if(is_character, na_if, "") %>%
+  mutate_if(is.numeric, na_if, -9999) %>%
+  mutate(StartTime = as.POSIXct(StartTime/1000, origin = "1970-01-01", tz = "America/Los_Angeles")) %>%
+  rename(StartDateTime = StartTime)
+
+resp.dl <- GET("https://services1.arcgis.com/fBc8EJBxQRMcHlei/arcgis/rest/services/service_91ba537840c94230a0bdfb2e96385070/FeatureServer/1/query",
+                  query = list(where="1=1",
+                               outFields="*",
+                               f="JSON",
+                               token=agol_token$token))
+sensor.dl <- fromJSON(content(resp.dl, type = "text", encoding = "UTF-8"))
+sensor.dl <- sensor.dl$features$attributes %>%
+  as_tibble() %>%
+  mutate_if(is_character, na_if, "") %>%
+  mutate_if(is.numeric, na_if, -9999)
+
+resp.deploy <- GET("https://services1.arcgis.com/fBc8EJBxQRMcHlei/arcgis/rest/services/service_91ba537840c94230a0bdfb2e96385070/FeatureServer/2/query",
+                  query = list(where="1=1",
+                               outFields="*",
+                               f="JSON",
+                               token=agol_token$token))
+sensor.deploy <- fromJSON(content(resp.deploy, type = "text", encoding = "UTF-8"))
+sensor.deploy <- sensor.deploy$features$attributes %>%
+  as_tibble() %>%
+  mutate_if(is_character, na_if, "") %>%
+  mutate_if(is.numeric, na_if, -9999)
+
+resp.photos <- GET("https://services1.arcgis.com/fBc8EJBxQRMcHlei/arcgis/rest/services/service_91ba537840c94230a0bdfb2e96385070/FeatureServer/3/query",
+                  query = list(where="1=1",
+                               outFields="*",
+                               f="JSON",
+                               token=agol_token$token))
+photos <- fromJSON(content(resp.photos, type = "text", encoding = "UTF-8"))
+photos <- photos$features$attributes %>%
+  as_tibble() %>%
+  mutate_if(is_character, na_if, "") %>%
+  mutate_if(is.numeric, na_if, -9999)
+
+resp.crew <- GET("https://services1.arcgis.com/fBc8EJBxQRMcHlei/arcgis/rest/services/service_91ba537840c94230a0bdfb2e96385070/FeatureServer/4/query",
+                  query = list(where="1=1",
+                               outFields="*",
+                               f="JSON",
+                               token=agol_token$token))
+crew <- fromJSON(content(resp.crew, type = "text", encoding = "UTF-8"))
+crew <- crew$features$attributes %>%
+  as_tibble() %>%
+  mutate_if(is_character, na_if, "") %>%
+  mutate_if(is.numeric, na_if, -9999)
+
+resp.wq <- GET("https://services1.arcgis.com/fBc8EJBxQRMcHlei/arcgis/rest/services/service_91ba537840c94230a0bdfb2e96385070/FeatureServer/5/query",
+                  query = list(where="1=1",
+                               outFields="*",
+                               f="JSON",
+                               token=agol_token$token))
+wq <- fromJSON(content(resp.wq, type = "text", encoding = "UTF-8"))
+wq <- wq$features$attributes %>%
+  as_tibble() %>%
+  mutate_if(is_character, na_if, "") %>%
+  mutate_if(is.numeric, na_if, -9999)
+
+resp.secchi <- GET("https://services1.arcgis.com/fBc8EJBxQRMcHlei/arcgis/rest/services/service_91ba537840c94230a0bdfb2e96385070/FeatureServer/6/query",
+                  query = list(where="1=1",
+                               outFields="*",
+                               f="JSON",
+                               token=agol_token$token))
+secchi <- fromJSON(content(resp.secchi, type = "text", encoding = "UTF-8"))
+secchi <- secchi$features$attributes %>%
+  as_tibble() %>%
+  mutate_if(is_character, na_if, "") %>%
+  mutate_if(is.numeric, na_if, -9999)
+
+resp.sample <- GET("https://services1.arcgis.com/fBc8EJBxQRMcHlei/arcgis/rest/services/service_91ba537840c94230a0bdfb2e96385070/FeatureServer/7/query",
+                  query = list(where="1=1",
+                               outFields="*",
+                               f="JSON",
+                               token=agol_token$token))
+sample <- fromJSON(content(resp.sample, type = "text", encoding = "UTF-8"))
+sample <- sample$features$attributes %>%
+  as_tibble() %>%
+  mutate_if(is_character, na_if, "") %>%
+  mutate_if(is.numeric, na_if, -9999)
+
 
 # Wrangle data
 

@@ -36,6 +36,7 @@ token_resp <- POST("https://nps.maps.arcgis.com/sharing/rest/generateToken",
                    encode = "form")
 agol_token <- fromJSON(content(token_resp, type="text", encoding = "UTF-8"))
 
+## Get annual lake visit data
 resp.visit <- GET("https://services1.arcgis.com/fBc8EJBxQRMcHlei/arcgis/rest/services/service_91ba537840c94230a0bdfb2e96385070/FeatureServer/0/query",
                   query = list(where="1=1",
                                outFields="*",
@@ -126,6 +127,41 @@ sample <- sample$features$attributes %>%
   mutate_if(is_character, na_if, "") %>%
   mutate_if(is.numeric, na_if, -9999)
 
+## Get lake levels data
+resp.levels <- GET("https://services1.arcgis.com/fBc8EJBxQRMcHlei/arcgis/rest/services/service_e2571ff8454a4c65900a22297d10841f/FeatureServer/0/query",
+                  query = list(where="1=1",
+                               outFields="*",
+                               f="JSON",
+                               token=agol_token$token))
+levels <- fromJSON(content(resp.levels, type = "text", encoding = "UTF-8"))
+levels <- levels$features$attributes %>%
+  as_tibble() %>%
+  mutate_if(is_character, na_if, "") %>%
+  mutate_if(is.numeric, na_if, -9999) %>%
+  mutate(SampleDate = as.POSIXct(SampleDate/1000, origin = "1970-01-01", tz = "America/Los_Angeles")) %>%
+  rename(StartDateTime = SampleDate)
+
+resp.levels.crew <- GET("https://services1.arcgis.com/fBc8EJBxQRMcHlei/arcgis/rest/services/service_e2571ff8454a4c65900a22297d10841f/FeatureServer/1/query",
+                   query = list(where="1=1",
+                                outFields="*",
+                                f="JSON",
+                                token=agol_token$token))
+levels.crew <- fromJSON(content(resp.levels.crew, type = "text", encoding = "UTF-8"))
+levels.crew <- levels.crew$features$attributes %>%
+  as_tibble() %>%
+  mutate_if(is_character, na_if, "") %>%
+  mutate_if(is.numeric, na_if, -9999)
+
+resp.benchphoto <- GET("https://services1.arcgis.com/fBc8EJBxQRMcHlei/arcgis/rest/services/service_e2571ff8454a4c65900a22297d10841f/FeatureServer/2/query",
+                       query = list(where="1=1",
+                                    outFields="*",
+                                    f="JSON",
+                                    token=agol_token$token))
+bench.photo <- fromJSON(content(resp.benchphoto, type = "text", encoding = "UTF-8"))
+bench.photo <- bench.photo$features$attributes %>%
+  as_tibble() %>%
+  mutate_if(is_character, na_if, "") %>%
+  mutate_if(is.numeric, na_if, -9999)
 
 # Wrangle data
 

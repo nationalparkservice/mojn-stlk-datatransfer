@@ -67,7 +67,8 @@ resp.deploy <- GET("https://services1.arcgis.com/fBc8EJBxQRMcHlei/arcgis/rest/se
                                f="JSON",
                                token=agol_token$token))
 sensor.deploy <- fromJSON(content(resp.deploy, type = "text", encoding = "UTF-8"))
-sensor.deploy <- sensor.deploy$features$attributes %>%
+sensor.deploy <- cbind(sensor.deploy$features$attributes, sensor.deploy$features$geometry) %>%
+  mutate(wkid = sensor.deploy$spatialReference$wkid) %>%
   as_tibble() %>%
   mutate_if(is_character, na_if, "") %>%
   mutate_if(is.numeric, na_if, -9999)

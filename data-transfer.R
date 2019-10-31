@@ -2,6 +2,9 @@ library(reticulate)
 library(jsonlite)
 library(httr)
 library(tidyverse)
+library(pool)
+library(dbplyr)
+library(DBI)
 
 # Download photos using Python script
 gdb.path <- "M:/MONITORING/StreamsLakes/Data/WY2019/FieldData/Lakes_Annual/STLK_AnnualLakeVisit_20191022.gdb"
@@ -173,12 +176,11 @@ params$drv <- odbc::odbc()
 conn <- do.call(pool::dbPool, params)
 sites <- dplyr::tbl(conn, dbplyr::in_schema("data", "Site")) %>%
   dplyr::collect()
-pool::poolClose(conn)
 
 ## Visit table
 db <- list()
 db$Visit <- visit %>%
-  select(LakeCode, StartDateTime, Notes = OverallNotes) %>%
+  select(LakeCode, StartDateTime, Notes = OverallNotes, GUID = globalid) %>%
   mutate(VisitGroupID = 27,  # TODO: Add to app
          VisitDate = format.Date(StartDateTime, "%Y-%m-%d"),
          StartTime = format.Date(StartDateTime, "%H:%M:%S"),
@@ -189,6 +191,38 @@ db$Visit <- visit %>%
          DataProcessingLevelID = 1
          ) %>%
   left_join(select(sites, CodeFull, ID, ProtectedStatusID), by = c("LakeCode" = "CodeFull")) %>%
+  select(-LakeCode, -StartDateTime) %>%
   rename(SiteID = ID)
 
-# Load data into SQL database
+## Insert into Visit table in database
+### Build SQL statement
+sql.visit <- ""
+cols <- paste(names(db$Visit), collapse = ", ")
+placeholders <- rep("?", length(names(db$Visit)))
+placeholders <- paste(placeholders, collapse = ", ")
+sql.visit <- paste0("INSERT INTO data.Visit (", cols, ") ",
+                 "OUTPUT INSERTED.ID, INSERTED.GUID INTO InsertOutput ",
+                 "VALUES (",
+                 placeholders,
+                 ") ")
+sql.inserted <- "SELECT * FROM InsertOutput"
+### Perform insert
+visit.keys <- tibble()
+visit.keys <- poolWithTransaction(pool = conn, func = function(conn) {
+  dbCreateTable(conn, "InsertOutput", tibble(ID = integer(), GUID = character()))
+  
+  qry <- dbSendQuery(conn, sql.visit)
+  dbBind(qry, as.list(db$Visit))
+  dbFetch(qry)
+  dbClearResult(qry)
+  
+  res <- dbSendQuery(conn, sql.inserted)
+  inserted <- dbFetch(res)
+  dbClearResult(res)
+  
+  dbRemoveTable(conn, "InsertOutput")
+  
+  inserted
+})
+
+pool::poolClose(conn)

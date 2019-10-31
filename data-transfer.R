@@ -165,4 +165,11 @@ bench.photo <- bench.photo$features$attributes %>%
 
 # Wrangle data
 
-# Load data into SQL database
+## Get Site table from database
+params <- readr::read_csv("C:/Users/sewright/Documents/R/mojn-stlk-datatransfer/stlk-database-conn.csv") %>%  # TODO: Change to real database connection after testing is done
+  as.list()
+params$drv <- odbc::odbc()
+conn <- do.call(pool::dbPool, params)
+sites <- dplyr::tbl(conn, dbplyr::in_schema("data", "Site")) %>%
+  dplyr::collect()
+pool::poolClose(conn)

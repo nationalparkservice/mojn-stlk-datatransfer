@@ -173,3 +173,21 @@ conn <- do.call(pool::dbPool, params)
 sites <- dplyr::tbl(conn, dbplyr::in_schema("data", "Site")) %>%
   dplyr::collect()
 pool::poolClose(conn)
+
+## Visit table
+db <- list()
+db$Visit <- visit %>%
+  select(LakeCode, StartDateTime, Notes = OverallNotes) %>%
+  mutate(VisitGroupID = 27,  # TODO: Add to app
+         VisitDate = format.Date(StartDateTime, "%Y-%m-%d"),
+         StartTime = format.Date(StartDateTime, "%H:%M:%S"),
+         VisitTypeID = 1,  # TODO: Add to app
+         MonitoringStatusID = 1,  # TODO: Add to app
+         ProtocolID = 2,  # TODO: Add to app
+         IsLakeDry = 0, # TODO: Add to app
+         DataProcessingLevelID = 1
+         ) %>%
+  left_join(select(sites, CodeFull, ID, ProtectedStatusID), by = c("LakeCode" = "CodeFull")) %>%
+  rename(SiteID = ID)
+
+# Load data into SQL database

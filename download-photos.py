@@ -12,12 +12,12 @@ def download_visit_photos(attTable, photoFeatureClass, visitFeatureClass, dataPh
         photo_cursor = da.SearchCursor(photoFeatureClass, field_names = ['PhotoType', 'parentglobalid'], where_clause = "GLOBALID = " + "'" + fk_photo + "'")
         
         # Get lake code, photo type, and date, and use them to form a prefix for the filename
-        for row in photo_cursor:
+        for row in photo_cursor:  # There is actually just one row
             photo_type = str(row[0])
             fk_visit = str(row[1])
         
         visit_cursor = da.SearchCursor(visitFeatureClass, field_names = ['LakeCode', 'StartTime'], where_clause = "GLOBALID = " + "'" + fk_visit + "'")  # Get global id for corresponding row in visit feature class
-        for row in visit_cursor:
+        for row in visit_cursor:  # There is actually just one row
             lake = row[0]
             time = datetime.strftime(row[1], "%Y%m%d")
             time_folder = datetime.strftime(row[1], "%Y_%m_%d")

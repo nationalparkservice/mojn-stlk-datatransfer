@@ -29,7 +29,8 @@ resp.dl <- GET("https://services1.arcgis.com/fBc8EJBxQRMcHlei/arcgis/rest/servic
                             f="JSON",
                             token=agol_token$token))
 sensor.dl <- fromJSON(content(resp.dl, type = "text", encoding = "UTF-8"))
-sensor.dl <- sensor.dl$features$attributes %>%
+sensor.dl <- cbind(sensor.dl$features$attributes, sensor.dl$features$geometry) %>%
+  mutate(wkid = sensor.dl$spatialReference$wkid) %>%
   as_tibble() %>%
   mutate_if(is_character, na_if, "") %>%
   mutate_if(is.numeric, na_if, -9999)
@@ -52,7 +53,8 @@ resp.photos <- GET("https://services1.arcgis.com/fBc8EJBxQRMcHlei/arcgis/rest/se
                                 f="JSON",
                                 token=agol_token$token))
 photos <- fromJSON(content(resp.photos, type = "text", encoding = "UTF-8"))
-photos <- photos$features$attributes %>%
+photos <- cbind(photos$features$attributes, photos$features$geometry) %>%
+  mutate(wkid = photos$spatialReference$wkid) %>%
   as_tibble() %>%
   mutate_if(is_character, na_if, "") %>%
   mutate_if(is.numeric, na_if, -9999)

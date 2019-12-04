@@ -26,7 +26,41 @@ db$Visit <- visit %>%
   select(-LakeCode, -StartDateTime) %>%
   rename(SiteID = ID)
 
-## Insert into Visit table in database
-visit.keys <- uploadData(db$Visit, "data.Visit", conn, guid = TRUE)
+visit.keys <- uploadData(db$Visit, "data.Visit", conn, guid = TRUE)  # Insert into Visit table in database
+visit.keys <- mutate(visit.keys, GUID = tolower(GUID))
+
+## LoggerDeploy table
+db$LoggerDeploy <- sensor.deploy %>%
+  inner_join(visit.keys, by = c("parentglobalid" = "GUID")) %>%
+  select(VisitID = ID,
+         GUID = globalid,
+         LoggerMediumID = LoggerType,
+         LoggerID,
+         LoggerSerial = OtherLoggerID,
+         GPSName = GPS_PTnew,
+         X = x,
+         Y = y,
+         wkid
+  )
+loggerdeploy.keys <- uploadData(db$LoggerDeploy, "data.LoggerDeploy", conn, guid = FALSE)
+
+## LoggerDownload table
+db$LoggerDownload <- sensor.dl %>%
+  inner_join(visit.keys, by = c("parentglobalid" = "GUID")) %>%
+  select(VisitID = ID,
+         GUID = globalid,
+         LoggerMediumID = LoggerType_old,
+         LoggerID = LoggerID_old,
+         LoggerSerial = OtherLoggerID_old,
+         Downloaded = DownloadState,
+         OriginalFileName = FileName,
+         GPSName = GPS_PTold,
+         X = x,
+         Y = y,
+         wkid
+  )
+loggerdl.keys <- uploadData(db$LoggerDownload, "data.LoggerDownload", conn, guid = FALSE)
+
+
 
 pool::poolClose(conn)

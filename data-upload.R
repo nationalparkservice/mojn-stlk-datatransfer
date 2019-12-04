@@ -1,5 +1,7 @@
 # Upload data to MOJN_STLK database
 
+db <- list()
+
 ## Get Site table from database
 params <- readr::read_csv("C:/Users/sewright/Documents/R/mojn-stlk-datatransfer/stlk-database-conn.csv") %>%  # TODO: Change to real database connection after testing is done
   as.list()
@@ -9,7 +11,6 @@ sites <- dplyr::tbl(conn, dbplyr::in_schema("data", "Site")) %>%
   dplyr::collect()
 
 ## Visit table
-db <- list()
 db$Visit <- visit %>%
   select(LakeCode, StartDateTime, Notes = OverallNotes, GUID = globalid) %>%
   mutate(VisitGroupID = 27,  # TODO: Add to app

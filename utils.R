@@ -10,6 +10,8 @@ uploadData <- function(df, table.name, conn, guid = FALSE) {
     guid.col <- "NULL AS GUID"
   }
   
+  ## TODO: Account for the case when we want to return the GUID-ID crosswalk but aren't storing the GUID permanently in the database (create a GUID col then drop it)
+  
   cols <- paste(names(df), collapse = ", ")
   placeholders <- rep("?", length(names(df)))
   placeholders <- paste(placeholders, collapse = ", ")

@@ -62,6 +62,14 @@ db$LoggerDownload <- sensor.dl %>%
 loggerdl.keys <- uploadData(db$LoggerDownload, "data.LoggerDownload", conn, guid = FALSE)
 
 ## PhotoActivity table
+db$PhotoActivity <- photos %>%
+  inner_join(visit.keys, by = c("parentglobalid" = "GUID")) %>%
+  select(VisitID = ID) %>%
+  mutate(CameraID = 1,  # TODO: Add to app
+         CameraCardID = 1,  # TODO: Add to app
+         DataProcessingLevelID = 1) %>%
+  unique()
+photos.keys <- uploadData(db$PhotoActivity, "data.PhotoActivity", conn, guid = FALSE)
 
 ## Photo table
 

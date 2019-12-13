@@ -61,6 +61,40 @@ db$LoggerDownload <- sensor.dl %>%
   )
 loggerdl.keys <- uploadData(db$LoggerDownload, "data.LoggerDownload", conn, guid = FALSE)
 
+## PhotoActivity table
+
+## Photo table
+
+
+## VisitPersonnel table
+
+
+## WaterQualityActivity table
+
+
+## WaterQualityDepthProfile table
+
+
+## WaterQualityDepthProfileDO table
+
+
+## WaterQualityDepthProfilepH table
+
+
+## WaterQualityDepthProfileSpCond table
+
+
+## WaterQualityDepthProfileTemp table
+
+
+## ClarityActivity table
+
+
+## ClaritySecchiDepth table
+
+
+## WaterChemistryActivity table
+
 
 
 pool::poolClose(conn)

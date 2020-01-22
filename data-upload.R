@@ -26,7 +26,7 @@ db$Visit <- visit %>%
   select(-LakeCode, -StartDateTime) %>%
   rename(SiteID = ID)
 
-visit.keys <- uploadData(db$Visit, "data.Visit", conn, guid = TRUE)  # Insert into Visit table in database
+visit.keys <- uploadData(db$Visit, "data.Visit", conn, keep.guid = TRUE)  # Insert into Visit table in database
 visit.keys <- mutate(visit.keys, GUID = tolower(GUID))
 
 ## LoggerDeploy table
@@ -42,7 +42,7 @@ db$LoggerDeploy <- sensor.deploy %>%
          Y = y,
          wkid
   )
-loggerdeploy.keys <- uploadData(db$LoggerDeploy, "data.LoggerDeploy", conn, guid = FALSE)
+loggerdeploy.keys <- uploadData(db$LoggerDeploy, "data.LoggerDeploy", conn, keep.guid = FALSE)
 
 ## LoggerDownload table
 db$LoggerDownload <- sensor.dl %>%
@@ -59,7 +59,7 @@ db$LoggerDownload <- sensor.dl %>%
          Y = y,
          wkid
   )
-loggerdl.keys <- uploadData(db$LoggerDownload, "data.LoggerDownload", conn, guid = FALSE)
+loggerdl.keys <- uploadData(db$LoggerDownload, "data.LoggerDownload", conn, keep.guid = FALSE)
 
 ## PhotoActivity table
 db$PhotoActivity <- photos %>%
@@ -69,7 +69,7 @@ db$PhotoActivity <- photos %>%
          CameraCardID = 1,  # TODO: Add to app
          DataProcessingLevelID = 1) %>%
   unique()
-photos.keys <- uploadData(db$PhotoActivity, "data.PhotoActivity", conn, guid = FALSE)
+photos.keys <- uploadData(db$PhotoActivity, "data.PhotoActivity", conn, keep.guid = FALSE)
 
 ## Photo table
 

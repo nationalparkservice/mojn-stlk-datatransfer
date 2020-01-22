@@ -1,25 +1,50 @@
 # Function for inserting data into the database
-uploadData <- function(df, table.name, conn, guid = FALSE) {
+uploadData <- function(df, table.name, conn, has.guid = TRUE, keep.guid = FALSE, col.guid = "GUID") {
   # Build SQL statements
   sql.insert <- ""
-  
-  ## Modify SQL statement based on whether the GUID globalid column from AGOL is being stored in the database
-  if (guid) {
-    guid.col <- "INSERTED.GUID"
-  } else {
-    guid.col <- "NULL AS GUID"
+  sql.before <- ""
+  sql.after <- ""
+
+  if (has.guid & keep.guid) {  # GUID permanently stored in DB
+    cols <- names(df)  # Assume names of columns, incl. GUID column, match those in the database exactly
+    cols <- paste(cols, collapse = ", ")
+    
+    placeholders <- rep("?", length(names(df)))
+    placeholders <- paste(placeholders, collapse = ", ")
+    sql.insert <- paste0("INSERT INTO ", table.name, "(", cols, ") ",
+                         "OUTPUT INSERTED.ID, INSERTED.GUID INTO InsertOutput ",
+                         "VALUES (",
+                         placeholders,
+                         ") ")
+
+  } else if (has.guid & !keep.guid) {  # Create temporary GUID column in order to return a GUID-ID crosswalk
+    cols <- names(df)
+    cols[grep(col.guid, cols)] <- "GUID_DeleteMe"  # Replace GUID column name to make clear that it is temporary
+    cols <- paste(cols, collapse = ", ")
+    
+    placeholders <- rep("?", length(names(df)))
+    placeholders <- paste(placeholders, collapse = ", ")
+    sql.insert <- paste0("INSERT INTO ", table.name, "(", cols, ") ",
+                         "OUTPUT INSERTED.ID, INSERTED.GUID_DeleteMe INTO InsertOutput ",
+                         "VALUES (",
+                         placeholders,
+                         ") ")
+    sql.before = paste0("ALTER TABLE ", table.name, " DROP COLUMN GUID_DeleteMe; ",
+                        "ALTER TABLE ", table.name, " ADD GUID_DeleteMe uniqueidentifier")
+    sql.after = paste0("ALTER TABLE ", table.name, " DROP COLUMN GUID_DeleteMe")
+    
+  } else if (!has.guid) {  # No GUID at all
+    cols <- names(df)  # Assume names of columns, incl. GUID column, match those in the database exactly
+    cols <- paste(cols, collapse = ", ")
+    
+    placeholders <- rep("?", length(names(df)))
+    placeholders <- paste(placeholders, collapse = ", ")
+    sql.insert <- paste0("INSERT INTO ", table.name, "(", cols, ") ",
+                         "OUTPUT INSERTED.ID, '' INTO InsertOutput ",
+                         "VALUES (",
+                         placeholders,
+                         ") ")
   }
-  
-  ## TODO: Account for the case when we want to return the GUID-ID crosswalk but aren't storing the GUID permanently in the database (create a GUID col then drop it)
-  
-  cols <- paste(names(df), collapse = ", ")
-  placeholders <- rep("?", length(names(df)))
-  placeholders <- paste(placeholders, collapse = ", ")
-  sql.insert <- paste0("INSERT INTO ", table.name, "(", cols, ") ",
-                      "OUTPUT INSERTED.ID, INSERTED.GUID INTO InsertOutput ",
-                      "VALUES (",
-                      placeholders,
-                      ") ")
   
   sql.inserted <- "SELECT * FROM InsertOutput"
   
@@ -27,6 +52,14 @@ uploadData <- function(df, table.name, conn, guid = FALSE) {
   keys <- tibble()
   keys <- poolWithTransaction(pool = conn, func = function(conn) {
     dbCreateTable(conn, "InsertOutput", tibble(ID = integer(), GUID = character()))
+    
+    # If needed, create a temporary column to store the GUID
+    if (str_length(sql.before) > 0) {
+      qry <- dbSendQuery(conn, sql.before)
+      dbBind(qry, as.list(df))
+      dbFetch(qry)
+      dbClearResult(qry)
+    }
     
     qry <- dbSendQuery(conn, sql.insert)
     dbBind(qry, as.list(df))
@@ -39,6 +72,14 @@ uploadData <- function(df, table.name, conn, guid = FALSE) {
     dbClearResult(res)
     
     dbRemoveTable(conn, "InsertOutput")
+    
+    # If needed, delete the temporary GUID column
+    if (str_length(sql.after) > 0) {
+      qry <- dbSendQuery(conn, sql.after)
+      dbBind(qry, as.list(df))
+      dbFetch(qry)
+      dbClearResult(qry)
+    }
     
     return(inserted)
   })

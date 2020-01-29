@@ -13,19 +13,22 @@ sites <- dplyr::tbl(conn, dbplyr::in_schema("data", "Site")) %>%
 
 ## Visit table
 db$Visit <- visit %>%
-  select(LakeCode, StartDateTime, Notes = OverallNotes, GlobalID = globalid) %>%
-  mutate(VisitGroupID = 27,  # TODO: Add to app
-         VisitDate = format.Date(StartDateTime, "%Y-%m-%d"),
+  select(SiteID = LakeCode,
+         StartDateTime,
+         Notes = OverallNotes,
+         GlobalID = globalid,
+         VisitGroupID,
+         VisitTypeID,
+         MonitoringStatusID,
+         GPSUnitID,
+         ProtocolID = ProtocolPackageID,
+         IsLakeDry) %>%
+  mutate(VisitDate = format.Date(StartDateTime, "%Y-%m-%d"),
          StartTime = format.Date(StartDateTime, "%H:%M:%S"),
-         VisitTypeID = 1,  # TODO: Add to app
-         MonitoringStatusID = 1,  # TODO: Add to app
-         ProtocolID = 2,  # TODO: Add to app
-         IsLakeDry = 0, # TODO: Add to app
          DataProcessingLevelID = 1
          ) %>%
-  left_join(select(sites, CodeFull, ID, ProtectedStatusID), by = c("LakeCode" = "CodeFull")) %>%
-  select(-LakeCode, -StartDateTime) %>%
-  rename(SiteID = ID)
+  left_join(select(sites, CodeFull, ID, ProtectedStatusID), by = c("SiteID" = "ID")) %>%
+  select(-StartDateTime, -CodeFull) 
 
 visit.keys <- uploadData(db$Visit, "data.Visit", conn, keep.guid = TRUE)  # Insert into Visit table in database
 visit.keys <- mutate(visit.keys, GlobalID = tolower(GlobalID))

@@ -9,8 +9,11 @@ token_resp <- POST("https://nps.maps.arcgis.com/sharing/rest/generateToken",
                    encode = "form")
 agol_token <- fromJSON(content(token_resp, type="text", encoding = "UTF-8"))
 
+service_url = "https://services1.arcgis.com/fBc8EJBxQRMcHlei/arcgis/rest/services/service_92a9095970814482a0534c08a0628f38/FeatureServer"
+# old_service_url = "https://services1.arcgis.com/fBc8EJBxQRMcHlei/arcgis/rest/services/service_91ba537840c94230a0bdfb2e96385070/FeatureServer"
+
 ## Get annual lake visit data
-resp.visit <- GET("https://services1.arcgis.com/fBc8EJBxQRMcHlei/arcgis/rest/services/service_91ba537840c94230a0bdfb2e96385070/FeatureServer/0/query",
+resp.visit <- GET(paste0(service_url, "/0/query"),
                   query = list(where="1=1",
                                outFields="*",
                                f="JSON",
@@ -23,7 +26,7 @@ visit <- visit$features$attributes %>%
   mutate(StartTime = as.POSIXct(StartTime/1000, origin = "1970-01-01", tz = "America/Los_Angeles")) %>%
   rename(StartDateTime = StartTime)
 
-resp.dl <- GET("https://services1.arcgis.com/fBc8EJBxQRMcHlei/arcgis/rest/services/service_91ba537840c94230a0bdfb2e96385070/FeatureServer/1/query",
+resp.dl <- GET(paste0(service_url, "/1/query"),
                query = list(where="1=1",
                             outFields="*",
                             f="JSON",
@@ -35,7 +38,7 @@ sensor.dl <- cbind(sensor.dl$features$attributes, sensor.dl$features$geometry) %
   mutate_if(is_character, na_if, "") %>%
   mutate_if(is.numeric, na_if, -9999)
 
-resp.deploy <- GET("https://services1.arcgis.com/fBc8EJBxQRMcHlei/arcgis/rest/services/service_91ba537840c94230a0bdfb2e96385070/FeatureServer/2/query",
+resp.deploy <- GET(paste0(service_url, "/2/query"),
                    query = list(where="1=1",
                                 outFields="*",
                                 f="JSON",
@@ -47,7 +50,7 @@ sensor.deploy <- cbind(sensor.deploy$features$attributes, sensor.deploy$features
   mutate_if(is_character, na_if, "") %>%
   mutate_if(is.numeric, na_if, -9999)
 
-resp.photos <- GET("https://services1.arcgis.com/fBc8EJBxQRMcHlei/arcgis/rest/services/service_91ba537840c94230a0bdfb2e96385070/FeatureServer/3/query",
+resp.photos <- GET(paste0(service_url, "/3/query"),
                    query = list(where="1=1",
                                 outFields="*",
                                 f="JSON",
@@ -59,7 +62,7 @@ photos <- cbind(photos$features$attributes, photos$features$geometry) %>%
   mutate_if(is_character, na_if, "") %>%
   mutate_if(is.numeric, na_if, -9999)
 
-resp.crew <- GET("https://services1.arcgis.com/fBc8EJBxQRMcHlei/arcgis/rest/services/service_91ba537840c94230a0bdfb2e96385070/FeatureServer/4/query",
+resp.crew <- GET(paste0(service_url, "/4/query"),
                  query = list(where="1=1",
                               outFields="*",
                               f="JSON",
@@ -70,7 +73,7 @@ crew <- crew$features$attributes %>%
   mutate_if(is_character, na_if, "") %>%
   mutate_if(is.numeric, na_if, -9999)
 
-resp.wq <- GET("https://services1.arcgis.com/fBc8EJBxQRMcHlei/arcgis/rest/services/service_91ba537840c94230a0bdfb2e96385070/FeatureServer/5/query",
+resp.wq <- GET(paste0(service_url, "/5/query"),
                query = list(where="1=1",
                             outFields="*",
                             f="JSON",
@@ -81,7 +84,7 @@ wq <- wq$features$attributes %>%
   mutate_if(is_character, na_if, "") %>%
   mutate_if(is.numeric, na_if, -9999)
 
-resp.secchi <- GET("https://services1.arcgis.com/fBc8EJBxQRMcHlei/arcgis/rest/services/service_91ba537840c94230a0bdfb2e96385070/FeatureServer/6/query",
+resp.secchi <- GET(paste0(service_url, "/6/query"),
                    query = list(where="1=1",
                                 outFields="*",
                                 f="JSON",
@@ -92,19 +95,20 @@ secchi <- secchi$features$attributes %>%
   mutate_if(is_character, na_if, "") %>%
   mutate_if(is.numeric, na_if, -9999)
 
-resp.sample <- GET("https://services1.arcgis.com/fBc8EJBxQRMcHlei/arcgis/rest/services/service_91ba537840c94230a0bdfb2e96385070/FeatureServer/7/query",
-                   query = list(where="1=1",
-                                outFields="*",
-                                f="JSON",
-                                token=agol_token$token))
-sample <- fromJSON(content(resp.sample, type = "text", encoding = "UTF-8"))
-sample <- sample$features$attributes %>%
-  as_tibble() %>%
-  mutate_if(is_character, na_if, "") %>%
-  mutate_if(is.numeric, na_if, -9999)
+# resp.sample <- GET("https://services1.arcgis.com/fBc8EJBxQRMcHlei/arcgis/rest/services/service_91ba537840c94230a0bdfb2e96385070/FeatureServer/7/query",
+#                    query = list(where="1=1",
+#                                 outFields="*",
+#                                 f="JSON",
+#                                 token=agol_token$token))
+# sample <- fromJSON(content(resp.sample, type = "text", encoding = "UTF-8"))
+# sample <- sample$features$attributes %>%
+#   as_tibble() %>%
+#   mutate_if(is_character, na_if, "") %>%
+#   mutate_if(is.numeric, na_if, -9999)
 
 ## Get lake levels data
-resp.levels <- GET("https://services1.arcgis.com/fBc8EJBxQRMcHlei/arcgis/rest/services/service_e2571ff8454a4c65900a22297d10841f/FeatureServer/0/query",
+levels_service_url = "https://services1.arcgis.com/fBc8EJBxQRMcHlei/arcgis/rest/services/service_e2571ff8454a4c65900a22297d10841f/FeatureServer"
+resp.levels <- GET(paste0(service_url, "/0/query"),
                    query = list(where="1=1",
                                 outFields="*",
                                 f="JSON",
@@ -114,10 +118,10 @@ levels <- levels$features$attributes %>%
   as_tibble() %>%
   mutate_if(is_character, na_if, "") %>%
   mutate_if(is.numeric, na_if, -9999) %>%
-  mutate(SampleDate = as.POSIXct(SampleDate/1000, origin = "1970-01-01", tz = "America/Los_Angeles")) %>%
-  rename(StartDateTime = SampleDate)
+  mutate(StartTime = as.POSIXct(StartTime/1000, origin = "1970-01-01", tz = "America/Los_Angeles")) %>%
+  rename(StartDateTime = StartTime)
 
-resp.levels.crew <- GET("https://services1.arcgis.com/fBc8EJBxQRMcHlei/arcgis/rest/services/service_e2571ff8454a4c65900a22297d10841f/FeatureServer/1/query",
+resp.levels.crew <- GET(paste0(service_url, "/1/query"),
                         query = list(where="1=1",
                                      outFields="*",
                                      f="JSON",
@@ -128,7 +132,7 @@ levels.crew <- levels.crew$features$attributes %>%
   mutate_if(is_character, na_if, "") %>%
   mutate_if(is.numeric, na_if, -9999)
 
-resp.benchphoto <- GET("https://services1.arcgis.com/fBc8EJBxQRMcHlei/arcgis/rest/services/service_e2571ff8454a4c65900a22297d10841f/FeatureServer/2/query",
+resp.benchphoto <- GET(paste0(service_url, "/2/query"),
                        query = list(where="1=1",
                                     outFields="*",
                                     f="JSON",

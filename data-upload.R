@@ -7,12 +7,13 @@ params <- readr::read_csv("C:/Users/sewright/Documents/R/mojn-stlk-datatransfer/
   as.list()
 params$drv <- odbc::odbc()
 conn <- do.call(pool::dbPool, params)
+
 sites <- dplyr::tbl(conn, dbplyr::in_schema("data", "Site")) %>%
   dplyr::collect()
 
 ## Visit table
 db$Visit <- visit %>%
-  select(LakeCode, StartDateTime, Notes = OverallNotes, GUID = globalid) %>%
+  select(LakeCode, StartDateTime, Notes = OverallNotes, GlobalID = globalid) %>%
   mutate(VisitGroupID = 27,  # TODO: Add to app
          VisitDate = format.Date(StartDateTime, "%Y-%m-%d"),
          StartTime = format.Date(StartDateTime, "%H:%M:%S"),
@@ -27,7 +28,7 @@ db$Visit <- visit %>%
   rename(SiteID = ID)
 
 visit.keys <- uploadData(db$Visit, "data.Visit", conn, keep.guid = TRUE)  # Insert into Visit table in database
-visit.keys <- mutate(visit.keys, GUID = tolower(GUID))
+visit.keys <- mutate(visit.keys, GlobalID = tolower(GlobalID))
 
 ## LoggerDeploy table
 db$LoggerDeploy <- sensor.deploy %>%

@@ -35,35 +35,33 @@ visit.keys <- mutate(visit.keys, GlobalID = tolower(GlobalID))
 
 ## LoggerDeploy table
 db$LoggerDeploy <- sensor.deploy %>%
-  inner_join(visit.keys, by = c("parentglobalid" = "GUID")) %>%
+  inner_join(visit.keys, by = c("parentglobalid" = "GlobalID")) %>%
   select(VisitID = ID,
-         GUID = globalid,
-         LoggerMediumID = LoggerType,
+         GlobalID = globalid,
+         LoggerMediumID,
          LoggerID,
-         LoggerSerial = OtherLoggerID,
-         GPSName = GPS_PTnew,
-         X = x,
-         Y = y,
-         wkid
+         LoggerSerial = OtherLoggerSN,
+         X_coord = x,
+         Y_coord = y,
+         WKID = wkid
   )
-loggerdeploy.keys <- uploadData(db$LoggerDeploy, "data.LoggerDeploy", conn, keep.guid = FALSE)
+loggerdeploy.keys <- uploadData(db$LoggerDeploy, "data.LoggerDeployment", conn, keep.guid = TRUE)
 
 ## LoggerDownload table
 db$LoggerDownload <- sensor.dl %>%
-  inner_join(visit.keys, by = c("parentglobalid" = "GUID")) %>%
+  inner_join(visit.keys, by = c("parentglobalid" = "GlobalID")) %>%
   select(VisitID = ID,
-         GUID = globalid,
-         LoggerMediumID = LoggerType_old,
+         GlobalID = globalid,
+         LoggerMediumID = LoggerMediumID_old,
          LoggerID = LoggerID_old,
-         LoggerSerial = OtherLoggerID_old,
-         Downloaded = DownloadState,
+         LoggerSerial = OtherLoggerSN_old,
+         Downloaded_YN = DownloadState,
          OriginalFileName = FileName,
-         GPSName = GPS_PTold,
-         X = x,
-         Y = y,
-         wkid
+         X_coord = x,
+         Y_coord = y,
+         WKID = wkid
   )
-loggerdl.keys <- uploadData(db$LoggerDownload, "data.LoggerDownload", conn, keep.guid = FALSE)
+loggerdl.keys <- uploadData(db$LoggerDownload, "data.LoggerDownload", conn, keep.guid = TRUE)
 
 ## PhotoActivity table
 db$PhotoActivity <- photos %>%

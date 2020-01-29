@@ -1,5 +1,5 @@
 # Function for inserting data into the database
-uploadData <- function(df, table.name, conn, has.guid = TRUE, keep.guid = FALSE, col.guid = "GUID") {
+uploadData <- function(df, table.name, conn, has.guid = TRUE, keep.guid = FALSE, col.guid = "GlobalID") {
   # Build SQL statements
   sql.insert <- ""
   sql.before <- ""
@@ -12,7 +12,7 @@ uploadData <- function(df, table.name, conn, has.guid = TRUE, keep.guid = FALSE,
     placeholders <- rep("?", length(names(df)))
     placeholders <- paste(placeholders, collapse = ", ")
     sql.insert <- paste0("INSERT INTO ", table.name, "(", cols, ") ",
-                         "OUTPUT INSERTED.ID, INSERTED.GUID INTO InsertOutput ",
+                         "OUTPUT INSERTED.ID, INSERTED.", col.guid, " INTO InsertOutput ",
                          "VALUES (",
                          placeholders,
                          ") ")
@@ -29,8 +29,7 @@ uploadData <- function(df, table.name, conn, has.guid = TRUE, keep.guid = FALSE,
                          "VALUES (",
                          placeholders,
                          ") ")
-    sql.before = paste0("ALTER TABLE ", table.name, " DROP COLUMN GUID_DeleteMe; ",
-                        "ALTER TABLE ", table.name, " ADD GUID_DeleteMe uniqueidentifier")
+    sql.before = paste0("ALTER TABLE ", table.name, " ADD GUID_DeleteMe uniqueidentifier")
     sql.after = paste0("ALTER TABLE ", table.name, " DROP COLUMN GUID_DeleteMe")
     
   } else if (!has.guid) {  # No GUID at all
@@ -51,14 +50,13 @@ uploadData <- function(df, table.name, conn, has.guid = TRUE, keep.guid = FALSE,
   # Perform insert
   keys <- tibble()
   keys <- poolWithTransaction(pool = conn, func = function(conn) {
-    dbCreateTable(conn, "InsertOutput", tibble(ID = integer(), GUID = character()))
+    temp.table <- tibble(ID = integer(), GUID = character())
+    names(temp.table) <- c("ID", col.guid)
+    dbCreateTable(conn, "InsertOutput", temp.table)
     
     # If needed, create a temporary column to store the GUID
     if (str_length(sql.before) > 0) {
-      qry <- dbSendQuery(conn, sql.before)
-      dbBind(qry, as.list(df))
-      dbFetch(qry)
-      dbClearResult(qry)
+      dbSendQuery(conn, sql.before)
     }
     
     qry <- dbSendQuery(conn, sql.insert)
@@ -75,16 +73,13 @@ uploadData <- function(df, table.name, conn, has.guid = TRUE, keep.guid = FALSE,
     
     # If needed, delete the temporary GUID column
     if (str_length(sql.after) > 0) {
-      qry <- dbSendQuery(conn, sql.after)
-      dbBind(qry, as.list(df))
-      dbFetch(qry)
-      dbClearResult(qry)
+      dbSendQuery(conn, sql.after)
     }
     
     return(inserted)
   })
   
-  if (!guid) {
+  if (!has.guid) {
     keys <- select(keys, ID)
   }
   

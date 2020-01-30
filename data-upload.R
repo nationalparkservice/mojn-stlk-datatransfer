@@ -105,17 +105,32 @@ db$LoggerDownload <- sensor.dl %>%
 loggerdl.keys <- uploadData(db$LoggerDownload, "data.LoggerDownload", conn, keep.guid = TRUE)
 
 ## PhotoActivity table
-db$PhotoActivity <- photos %>%
-  inner_join(visit.keys, by = c("parentglobalid" = "GUID")) %>%
-  select(VisitID = ID) %>%
-  mutate(CameraID = 1,  # TODO: Add to app
-         CameraCardID = 1,  # TODO: Add to app
-         DataProcessingLevelID = 1) %>%
+db$PhotoActivity <- visit %>%  # All the photo activity data actually just comes from visit!
+  inner_join(visit.keys, by = c("globalid" = "GlobalID")) %>%
+  select(VisitID = ID,
+         GlobalID = globalid,
+         CameraID,
+         CameraCardID) %>%
   unique()
-photos.keys <- uploadData(db$PhotoActivity, "data.PhotoActivity", conn, keep.guid = FALSE)
+photoact.keys <- uploadData(db$PhotoActivity, "data.PhotoActivity", conn, keep.guid = FALSE)
+names(photoact.keys) <- c("PhotoActivityID", "VisitGlobalID")
 
 ## Photo table
-
+photos$globalid <- toupper(photos$globalid)
+db$Photo <- annual_photos %>%
+  inner_join(photoact.keys, by = c("VisitGUID" = "VisitGlobalID")) %>%
+  inner_join(photos, by = c('GlobalID' = 'globalid')) %>%
+  select(PhotoActivityID,
+         PhotoDescriptionCodeID = PhotoTypeID,
+         IsLibraryPhotoID = IsLibrary,
+         OriginalFilePath,
+         RenamedFilePath,
+         GPSUnit = GPS_Photo,
+         X_coord = x,
+         Y_coord = y,
+         WKID = wkid,
+         Notes = PhotoNotes)
+photo.keys <- uploadData(db$Photo, "data.Photo", conn, keep.guid = FALSE)
 
 ## VisitPersonnel table
 

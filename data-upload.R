@@ -11,6 +11,47 @@ conn <- do.call(pool::dbPool, params)
 sites <- dplyr::tbl(conn, dbplyr::in_schema("data", "Site")) %>%
   dplyr::collect()
 
+# Download photos using Python script
+
+# Get lookups of photo codes for photo naming
+photo.types <- dplyr::tbl(conn, dbplyr::in_schema("ref", "PhotoDescriptionCode")) %>%
+  dplyr::collect() %>%
+  select(ID, Code)
+
+# gdb.path <- "M:\\MONITORING\\StreamsLakes\\Data\\WY2019\\FieldData\\Lakes_Annual\\STLK_AnnualLakeVisit_20191022.gdb"
+gdb.path <- "C:\\Users\\sewright\\Desktop\\STLKPhotoDownloadTest\\MOJN_STLK_AnnualLakeVisit_20200130.gdb"
+photo.table <- paste(gdb.path, "Photos__ATTACH", sep = "\\")
+visit.data <- paste(gdb.path, "MOJN_STLK_AnnualLakeVisit", sep = "\\")
+photo.data <- paste(gdb.path, "Photos", sep = "\\")
+# photo.dest <- "M:\\MONITORING\\StreamsLakes\\Data\\WY2019\\ImageData\\Lakes"
+# originals.dest <- "M:\\MONITORING\\_FieldPhotoOriginals_DoNotModify\\AGOL_STLK"
+photo.dest <- "C:\\Users\\sewright\\Desktop\\STLKPhotoDownloadTest"
+originals.dest <- "C:\\Users\\sewright\\Desktop\\STLKPhotoDownloadTest\\Originals"
+use_python("C:\\Python27\\ArcGISx6410.5", required = TRUE)
+source_python("download-photos.py")
+
+## Create Python dictionaries from photo and site lookups
+photo.type.dict <- py_dict(photo.types$ID, photo.types$Code)
+lake.code.dict <- py_dict(sites$ID, sites$CodeFull)
+
+## Download photos from annual lake visits
+annual_photos <- download_visit_photos(attTable = photo.table, photoFeatureClass = photo.data, visitFeatureClass = visit.data, dataPhotoLocation = photo.dest, originalsLocation = originals.dest, photoCodeDict = photo.type.dict, lakeCodeDict = lake.code.dict)
+annual_photos <- as_tibble(annual_photos)
+annual_photos$VisitGUID <- str_remove_all(annual_photos$VisitGUID, "\\{|\\}")
+annual_photos$GlobalID <- str_remove_all(annual_photos$GlobalID, "\\{|\\}")
+
+# TODO: Consider taking all benchmark photos in annual lake visit survey
+## Download benchmark photos
+# gdb.path <- "M:\\MONITORING\\StreamsLakes\\Data\\WY2019\\FieldData\\Lakes_Annual\\STLK_LakeLevels_20191022.gdb"
+gdb.path <- "C:\\Users\\sewright\\Desktop\\STLKPhotoDownloadTest\\STLK_LakeLevels_20191022.gdb"
+photo.table <- paste(gdb.path, "BenchPhoto__ATTACH", sep = "\\")
+visit.data <- paste(gdb.path, "Form_2", sep = "\\")
+photo.data <- paste(gdb.path, "BenchPhoto", sep = "\\")
+
+bench_photos <- download_bench_photos(attTable = photo.table, photoFeatureClass = photo.data, visitFeatureClass = visit.data, dataPhotoLocation = photo.dest, originalsLocation = originals.dest)
+bench_photos <- as_tibble(bench_photos)
+bench_photos$VisitGUID <- str_remove_all(bench_photos$VisitGUID, "\\{|\\}")
+
 ## Visit table
 db$Visit <- visit %>%
   select(SiteID = LakeCode,

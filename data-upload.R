@@ -66,7 +66,7 @@ db$Visit <- visit %>%
          IsLakeDry) %>%
   mutate(VisitDate = format.Date(StartDateTime, "%Y-%m-%d"),
          StartTime = format.Date(StartDateTime, "%H:%M:%S"),
-         DataProcessingLevelID = 1
+         DataProcessingLevelID = 1  # Raw
          ) %>%
   left_join(select(sites, CodeFull, ID, ProtectedStatusID), by = c("SiteID" = "ID")) %>%
   select(-StartDateTime, -CodeFull) 

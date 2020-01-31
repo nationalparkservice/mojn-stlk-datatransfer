@@ -132,7 +132,12 @@ db$Photo <- annual_photos %>%
 photo.keys <- uploadData(db$Photo, "data.Photo", conn, keep.guid = FALSE)
 
 ## VisitPersonnel table
-
+db$VisitPersonnel <- crew %>%
+  inner_join(visit.keys, by = c("parentglobalid" = "GlobalID")) %>%
+  select(VisitID = ID,
+         PersonnelID = Initials) %>%
+  mutate(PersonnelRoleID = 5)  # Field crew
+personnel.keys <- uploadData(db$VisitPersonnel, "data.VisitPersonnel", conn, keep.guid = FALSE, cols.key = list(VisitID = integer(), PersonnelID = integer(), PersonnelRoleID = integer()))
 
 ## WaterQualityActivity table
 

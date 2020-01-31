@@ -116,7 +116,6 @@ photoact.keys <- uploadData(db$PhotoActivity, "data.PhotoActivity", conn, keep.g
 names(photoact.keys) <- c("PhotoActivityID", "VisitGlobalID")
 
 ## Photo table
-photos$globalid <- toupper(photos$globalid)
 db$Photo <- annual_photos %>%
   inner_join(photoact.keys, by = c("VisitGUID" = "VisitGlobalID")) %>%
   inner_join(photos, by = c('GlobalID' = 'globalid')) %>%

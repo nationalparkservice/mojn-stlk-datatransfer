@@ -86,5 +86,6 @@ uploadData <- function(df, table.name, conn, has.guid = TRUE, keep.guid = FALSE,
     keys <- select(keys, ID)
   }
   
+  keys[col.guid] <- tolower(keys[[col.guid]])
   return(keys)
 }

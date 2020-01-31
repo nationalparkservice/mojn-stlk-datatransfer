@@ -1,10 +1,12 @@
 # Function for inserting data into the database
-uploadData <- function(df, table.name, conn, has.guid = TRUE, keep.guid = FALSE, col.guid = "GlobalID") {
+uploadData <- function(df, table.name, conn, has.guid = TRUE, keep.guid = FALSE, col.guid = "GlobalID", cols.key = list(ID = integer())) {
   # Build SQL statements
   sql.insert <- ""
   sql.before <- ""
   sql.after <- ""
-
+  
+  colnames.key <- names(cols.key)
+  
   if (has.guid & keep.guid) {  # GUID permanently stored in DB
     cols <- names(df)  # Assume names of columns, incl. GUID column, match those in the database exactly
     cols <- paste(cols, collapse = ", ")
@@ -12,7 +14,7 @@ uploadData <- function(df, table.name, conn, has.guid = TRUE, keep.guid = FALSE,
     placeholders <- rep("?", length(names(df)))
     placeholders <- paste(placeholders, collapse = ", ")
     sql.insert <- paste0("INSERT INTO ", table.name, "(", cols, ") ",
-                         "OUTPUT INSERTED.ID, INSERTED.", col.guid, " INTO InsertOutput ",
+                         "OUTPUT ", paste0("INSERTED.", colnames.key, collapse = ", "), ", INSERTED.", col.guid, " INTO InsertOutput ",
                          "VALUES (",
                          placeholders,
                          ") ")
@@ -25,7 +27,7 @@ uploadData <- function(df, table.name, conn, has.guid = TRUE, keep.guid = FALSE,
     placeholders <- rep("?", length(names(df)))
     placeholders <- paste(placeholders, collapse = ", ")
     sql.insert <- paste0("INSERT INTO ", table.name, "(", cols, ") ",
-                         "OUTPUT INSERTED.ID, INSERTED.GUID_DeleteMe INTO InsertOutput ",
+                         "OUTPUT ", paste0("INSERTED.", colnames.key, collapse = ", "), ", INSERTED.GUID_DeleteMe INTO InsertOutput ",
                          "VALUES (",
                          placeholders,
                          ") ")
@@ -39,7 +41,7 @@ uploadData <- function(df, table.name, conn, has.guid = TRUE, keep.guid = FALSE,
     placeholders <- rep("?", length(names(df)))
     placeholders <- paste(placeholders, collapse = ", ")
     sql.insert <- paste0("INSERT INTO ", table.name, "(", cols, ") ",
-                         "OUTPUT INSERTED.ID, '' INTO InsertOutput ",
+                         "OUTPUT ", paste0("INSERTED.", colnames.key, collapse = ", "), " INTO InsertOutput ",
                          "VALUES (",
                          placeholders,
                          ") ")
@@ -50,8 +52,9 @@ uploadData <- function(df, table.name, conn, has.guid = TRUE, keep.guid = FALSE,
   # Perform insert
   keys <- tibble()
   keys <- poolWithTransaction(pool = conn, func = function(conn) {
-    temp.table <- tibble(ID = integer(), GUID = character())
-    names(temp.table) <- c("ID", col.guid)
+    temp.types <- cols.key
+    temp.types[[col.guid]] <- character()
+    temp.table <- tibble(!!!temp.types)
     dbCreateTable(conn, "InsertOutput", temp.table)
     
     # If needed, create a temporary column to store the GUID

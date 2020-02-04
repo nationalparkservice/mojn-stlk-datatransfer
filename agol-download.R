@@ -95,16 +95,6 @@ secchi <- secchi$features$attributes %>%
   mutate_if(is_character, na_if, "") %>%
   mutate_if(is.numeric, na_if, -9999)
 
-# resp.sample <- GET("https://services1.arcgis.com/fBc8EJBxQRMcHlei/arcgis/rest/services/service_91ba537840c94230a0bdfb2e96385070/FeatureServer/7/query",
-#                    query = list(where="1=1",
-#                                 outFields="*",
-#                                 f="JSON",
-#                                 token=agol_token$token))
-# sample <- fromJSON(content(resp.sample, type = "text", encoding = "UTF-8"))
-# sample <- sample$features$attributes %>%
-#   as_tibble() %>%
-#   mutate_if(is_character, na_if, "") %>%
-#   mutate_if(is.numeric, na_if, -9999)
 
 ## Get lake levels data
 levels_service_url = "https://services1.arcgis.com/fBc8EJBxQRMcHlei/arcgis/rest/services/service_e2571ff8454a4c65900a22297d10841f/FeatureServer"

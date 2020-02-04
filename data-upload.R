@@ -263,19 +263,81 @@ spcond3 <- wq %>%
   mutate(MeasurementNum = 3)
 
 db$WQSpCond <- rbind(spcond1, spcond2, spcond3) %>% arrange(WaterQualityDepthProfileID)
-ph.keys <- uploadData(db$WQSpCond, "data.WaterQualityDepthProfileSpCond", conn)
+spcond.keys <- uploadData(db$WQSpCond, "data.WaterQualityDepthProfileSpCond", conn)
 
 ## WaterQualityDepthProfileTemp table
+temp1 <- wq %>%
+  filter(IsDepthProfile == "Y") %>%
+  inner_join(wqdepthprofile.keys, by = c("globalid" = "GlobalID")) %>%
+  select(WaterQualityDepthProfileID = ID,
+         WaterTemperature_C = Temp_C_1,
+         DataQualityFlagID = Temp_Flag_1,
+         DataQualityFlagNote = FlagNote) %>%
+  mutate(MeasurementNum = 1)
 
+temp2 <- wq %>%
+  filter(IsDepthProfile == "Y") %>%
+  inner_join(wqdepthprofile.keys, by = c("globalid" = "GlobalID")) %>%
+  select(WaterQualityDepthProfileID = ID,
+         WaterTemperature_C = Temp_C_2,
+         DataQualityFlagID = Temp_Flag_2,
+         DataQualityFlagNote = FlagNote) %>%
+  mutate(MeasurementNum = 2)
+
+temp3 <- wq %>%
+  filter(IsDepthProfile == "Y") %>%
+  inner_join(wqdepthprofile.keys, by = c("globalid" = "GlobalID")) %>%
+  select(WaterQualityDepthProfileID = ID,
+         WaterTemperature_C = Temp_C_3,
+         DataQualityFlagID = Temp_Flag_3,
+         DataQualityFlagNote = FlagNote) %>%
+  mutate(MeasurementNum = 3)
+
+db$WQTemp <- rbind(temp1, temp2, temp3) %>% arrange(WaterQualityDepthProfileID)
+temp.keys <- uploadData(db$WQTemp, "data.WaterQualityDepthProfileTemperature", conn)
 
 ## ClarityActivity table
-
+db$ClarityActivity <- visit %>%
+  inner_join(visit.keys, by = c("globalid" = "GlobalID")) %>%
+  select(GlobalID = globalid,
+         VisitID = ID,
+         PersonnelID = SecchiObserverID,
+         DiskOnBottomID = SecchiVisBottom,
+         SurfaceCalmID = IsSurfaceCalm,
+         DepthToBottom_ft = LakeDepth_ft,
+         ObservationTime = StartDateTime) %>%
+  mutate(DataProcessingLevelID = 1,
+         ObservationTime = strftime(ObservationTime, format = "%T"))  # TODO:Double check that we decided not to record secchi measurement time separately
+clarityactivity.keys <- uploadData(db$ClarityActivity, "data.ClarityActivity", conn)
 
 ## ClaritySecchiDepth table
+desc <- secchi %>%
+  inner_join(clarityactivity.keys, by = c("parentglobalid" = "GlobalID")) %>%
+  select(ClarityActivityID = ID,
+         Depth_ft = DescendingDepth_ft) %>%
+  mutate(DepthTypeID = 2) # Descending
 
+asc <- secchi %>%
+  inner_join(clarityactivity.keys, by = c("parentglobalid" = "GlobalID")) %>%
+  select(ClarityActivityID = ID,
+         Depth_ft = AscendingDepth_ft) %>%
+  mutate(DepthTypeID = 3) # Ascending)
+
+db$SecchiDepth <- rbind(desc, asc) %>% arrange(ClarityActivityID, DepthTypeID)
+
+secchi.keys <- uploadData(db$SecchiDepth, "data.ClaritySecchiDepth", conn)
 
 ## WaterChemistryActivity table
+db$WaterChemistryActivity <- visit %>%
+  inner_join(visit.keys, by = c("globalid" = "GlobalID")) %>%
+  select(VisitID = ID,
+         SampleCollectionMethodID = SampleMethodID,
+         NumberOfBottlesFiltered = BottleCountFiltered,
+         NumberOfBottlesUnfiltered = BottleCountUnfiltered,
+         Notes = SampleNote) %>%
+  mutate(DataProcessingLevel = 1)
 
+chem.keys <- uploadData(db$WaterChemistryActivity, "data.WaterChemistryActivity", conn)
 
 
 pool::poolClose(conn)

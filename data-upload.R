@@ -40,18 +40,6 @@ annual_photos <- as_tibble(annual_photos)
 annual_photos$VisitGUID <- str_remove_all(annual_photos$VisitGUID, "\\{|\\}")
 annual_photos$GlobalID <- str_remove_all(annual_photos$GlobalID, "\\{|\\}")
 
-# TODO: Consider taking all benchmark photos in annual lake visit survey
-## Download benchmark photos
-# gdb.path <- "M:\\MONITORING\\StreamsLakes\\Data\\WY2019\\FieldData\\Lakes_Annual\\STLK_LakeLevels_20191022.gdb"
-gdb.path <- "C:\\Users\\sewright\\Desktop\\STLKPhotoDownloadTest\\STLK_LakeLevels_20191022.gdb"
-photo.table <- paste(gdb.path, "BenchPhoto__ATTACH", sep = "\\")
-visit.data <- paste(gdb.path, "Form_2", sep = "\\")
-photo.data <- paste(gdb.path, "BenchPhoto", sep = "\\")
-
-bench_photos <- download_bench_photos(attTable = photo.table, photoFeatureClass = photo.data, visitFeatureClass = visit.data, dataPhotoLocation = photo.dest, originalsLocation = originals.dest)
-bench_photos <- as_tibble(bench_photos)
-bench_photos$VisitGUID <- str_remove_all(bench_photos$VisitGUID, "\\{|\\}")
-
 ## Visit table
 db$Visit <- visit %>%
   select(SiteID = LakeCode,

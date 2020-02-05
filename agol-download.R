@@ -121,14 +121,3 @@ levels.crew <- levels.crew$features$attributes %>%
   as_tibble() %>%
   mutate_if(is_character, na_if, "") %>%
   mutate_if(is.numeric, na_if, -9999)
-
-resp.benchphoto <- GET(paste0(service_url, "/2/query"),
-                       query = list(where="1=1",
-                                    outFields="*",
-                                    f="JSON",
-                                    token=agol_token$token))
-bench.photo <- fromJSON(content(resp.benchphoto, type = "text", encoding = "UTF-8"))
-bench.photo <- bench.photo$features$attributes %>%
-  as_tibble() %>%
-  mutate_if(is_character, na_if, "") %>%
-  mutate_if(is.numeric, na_if, -9999)

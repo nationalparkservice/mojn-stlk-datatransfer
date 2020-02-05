@@ -105,6 +105,8 @@ names(photoact.keys) <- c("PhotoActivityID", "VisitGlobalID")
 
 ## Photo table
 db$Photo <- annual_photos %>%
+  mutate(VisitGUID = tolower(VisitGUID),
+         GlobalID = tolower(GlobalID)) %>%
   inner_join(photoact.keys, by = c("VisitGUID" = "VisitGlobalID")) %>%
   inner_join(photos, by = c('GlobalID' = 'globalid')) %>%
   select(PhotoActivityID,
@@ -323,7 +325,8 @@ db$WaterChemistryActivity <- visit %>%
          NumberOfBottlesFiltered = BottleCountFiltered,
          NumberOfBottlesUnfiltered = BottleCountUnfiltered,
          Notes = SampleNote) %>%
-  mutate(DataProcessingLevel = 1)
+  mutate(DataProcessingLevelID = 1,
+         LaboratoryID = 1)  # CCAL
 
 chem.keys <- uploadData(db$WaterChemistryActivity, "data.WaterChemistryActivity", conn)
 

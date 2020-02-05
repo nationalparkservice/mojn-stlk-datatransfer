@@ -10,7 +10,6 @@ token_resp <- POST("https://nps.maps.arcgis.com/sharing/rest/generateToken",
 agol_token <- fromJSON(content(token_resp, type="text", encoding = "UTF-8"))
 
 service_url = "https://services1.arcgis.com/fBc8EJBxQRMcHlei/arcgis/rest/services/service_92a9095970814482a0534c08a0628f38/FeatureServer"
-# old_service_url = "https://services1.arcgis.com/fBc8EJBxQRMcHlei/arcgis/rest/services/service_91ba537840c94230a0bdfb2e96385070/FeatureServer"
 
 ## Get annual lake visit data
 resp.visit <- GET(paste0(service_url, "/0/query"),

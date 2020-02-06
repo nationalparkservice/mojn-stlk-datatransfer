@@ -1,13 +1,22 @@
 # Upload data to MOJN_STLK database
 
+#---------Settings----------#
+# gdb.path <- "M:\\MONITORING\\StreamsLakes\\Data\\WY2019\\FieldData\\Lakes_Annual\\STLK_AnnualLakeVisit_20191022.gdb"
+gdb.path <- "C:\\Users\\sewright\\Desktop\\STLKPhotoDownloadTest\\MOJN_STLK_AnnualLakeVisit_20200130.gdb"
+# photo.dest <- "M:\\MONITORING\\StreamsLakes\\Data\\WY2019\\ImageData\\Lakes"
+# originals.dest <- "M:\\MONITORING\\_FieldPhotoOriginals_DoNotModify\\AGOL_STLK"
+photo.dest <- "C:\\Users\\sewright\\Desktop\\STLKPhotoDownloadTest"
+originals.dest <- "C:\\Users\\sewright\\Desktop\\STLKPhotoDownloadTest\\Originals"
+db.params.path <- "C:/Users/sewright/Documents/R/mojn-stlk-datatransfer/stlk-database-conn.csv"
+#---------------------------#
+
 db <- list()
 
 ## Get Site table from database
-params <- readr::read_csv("C:/Users/sewright/Documents/R/mojn-stlk-datatransfer/stlk-database-conn.csv") %>%  # TODO: Change to real database connection after testing is done
+params <- readr::read_csv(db.params.path) %>%  # TODO: Change to real database connection after testing is done
   as.list()
 params$drv <- odbc::odbc()
 conn <- do.call(pool::dbPool, params)
-
 sites <- dplyr::tbl(conn, dbplyr::in_schema("data", "Site")) %>%
   dplyr::collect()
 
@@ -17,17 +26,13 @@ sites <- dplyr::tbl(conn, dbplyr::in_schema("data", "Site")) %>%
 photo.types <- dplyr::tbl(conn, dbplyr::in_schema("ref", "PhotoDescriptionCode")) %>%
   dplyr::collect() %>%
   select(ID, Code)
-
-# gdb.path <- "M:\\MONITORING\\StreamsLakes\\Data\\WY2019\\FieldData\\Lakes_Annual\\STLK_AnnualLakeVisit_20191022.gdb"
-gdb.path <- "C:\\Users\\sewright\\Desktop\\STLKPhotoDownloadTest\\MOJN_STLK_AnnualLakeVisit_20200130.gdb"
 photo.table <- paste(gdb.path, "Photos__ATTACH", sep = "\\")
 visit.data <- paste(gdb.path, "MOJN_STLK_AnnualLakeVisit", sep = "\\")
 photo.data <- paste(gdb.path, "Photos", sep = "\\")
-# photo.dest <- "M:\\MONITORING\\StreamsLakes\\Data\\WY2019\\ImageData\\Lakes"
-# originals.dest <- "M:\\MONITORING\\_FieldPhotoOriginals_DoNotModify\\AGOL_STLK"
-photo.dest <- "C:\\Users\\sewright\\Desktop\\STLKPhotoDownloadTest"
-originals.dest <- "C:\\Users\\sewright\\Desktop\\STLKPhotoDownloadTest\\Originals"
-use_python("C:\\Python27\\ArcGISx6410.5", required = TRUE)
+py.ver <- py_config()
+if (!(py.ver$version < 3)) {
+  use_python("C:\\Python27\\ArcGISx6410.5", required = TRUE)
+}
 source_python("download-photos.py")
 
 ## Create Python dictionaries from photo and site lookups
@@ -58,9 +63,7 @@ db$Visit <- visit %>%
          ) %>%
   left_join(select(sites, CodeFull, ID, ProtectedStatusID), by = c("SiteID" = "ID")) %>%
   select(-StartDateTime, -CodeFull) 
-
 visit.keys <- uploadData(db$Visit, "data.Visit", conn, keep.guid = TRUE)  # Insert into Visit table in database
-visit.keys <- mutate(visit.keys, GlobalID = tolower(GlobalID))
 
 ## LoggerDeploy table
 db$LoggerDeploy <- sensor.deploy %>%

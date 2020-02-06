@@ -147,47 +147,47 @@ wqactivity.keys <- uploadData(db$WaterQualityActivity, "data.WaterQualityActivit
 
 ## WaterQualityDepthProfile table
 db$WQDepthProfile <- wq %>%
-  filter(IsDepthProfile == "Y") %>%
   inner_join(wqactivity.keys, by = c("parentglobalid" = "GlobalID")) %>%
   select(GlobalID = globalid,
          WaterQualityActivityID = ID,
+         IsDepthProfile,
          MeasurementDepth_ft) %>%
   unique()
 wqdepthprofile.keys <- uploadData(db$WQDepthProfile, "data.WaterQualityDepthProfile", conn, keep.guid = FALSE)
 
-if (any(is.na(wq$MeasurementDepth_ft)) | any(wq$MeasurementDepth_ft != "Y")) {
-  warning("The data contain measurements that are not part of a depth profile. These measurements were NOT transferred to the STLK database.")
+if (any(is.na(wq$MeasurementDepth_ft)) | any(wq$IsDepthProfile != "Y")) {
+  warning("The data contain measurements that are not part of a depth profile.")
 }
 
 ## WaterQualityDepthProfileDO table
 do1 <- wq %>%
-  filter(IsDepthProfile == "Y") %>%
   inner_join(wqdepthprofile.keys, by = c("globalid" = "GlobalID")) %>%
   select(WaterQualityDepthProfileID = ID,
          DissolvedOxygen_percent = DO_percent_1,
          DissolvedOxygen_mg_per_L = DO_mg_per_L_1,
          DataQualityFlagID = DO_Flag_1,
          DataQualityFlagNote = FlagNote) %>%
+  filter(!is.na(DissolvedOxygen_percent) | !is.na(DissolvedOxygen_mg_per_L)) %>%
   mutate(MeasurementNum = 1)
 
 do2 <- wq %>%
-  filter(IsDepthProfile == "Y") %>%
   inner_join(wqdepthprofile.keys, by = c("globalid" = "GlobalID")) %>%
   select(WaterQualityDepthProfileID = ID,
          DissolvedOxygen_percent = DO_percent_2,
          DissolvedOxygen_mg_per_L = DO_mg_per_L_2,
          DataQualityFlagID = DO_Flag_2,
          DataQualityFlagNote = FlagNote) %>%
+  filter(!is.na(DissolvedOxygen_percent) | !is.na(DissolvedOxygen_mg_per_L)) %>%
   mutate(MeasurementNum = 2)
 
 do3 <- wq %>%
-  filter(IsDepthProfile == "Y") %>%
   inner_join(wqdepthprofile.keys, by = c("globalid" = "GlobalID")) %>%
   select(WaterQualityDepthProfileID = ID,
          DissolvedOxygen_percent = DO_percent_3,
          DissolvedOxygen_mg_per_L = DO_mg_per_L_3,
          DataQualityFlagID = DO_Flag_3,
          DataQualityFlagNote = FlagNote) %>%
+  filter(!is.na(DissolvedOxygen_percent) | !is.na(DissolvedOxygen_mg_per_L)) %>%
   mutate(MeasurementNum = 3)
 
 db$WQDissolvedOxygen <- rbind(do1, do2, do3) %>% arrange(WaterQualityDepthProfileID)
@@ -195,30 +195,30 @@ do.keys <- uploadData(db$WQDissolvedOxygen, "data.WaterQualityDepthProfileDO", c
 
 ## WaterQualityDepthProfilepH table
 ph1 <- wq %>%
-  filter(IsDepthProfile == "Y") %>%
   inner_join(wqdepthprofile.keys, by = c("globalid" = "GlobalID")) %>%
   select(WaterQualityDepthProfileID = ID,
          pH = pH_1,
          DataQualityFlagID = pH_Flag_1,
          DataQualityFlagNote = FlagNote) %>%
+  filter(!is.na(pH)) %>%
   mutate(MeasurementNum = 1)
 
 ph2 <- wq %>%
-  filter(IsDepthProfile == "Y") %>%
   inner_join(wqdepthprofile.keys, by = c("globalid" = "GlobalID")) %>%
   select(WaterQualityDepthProfileID = ID,
          pH = pH_2,
          DataQualityFlagID = pH_Flag_2,
          DataQualityFlagNote = FlagNote) %>%
+  filter(!is.na(pH)) %>%
   mutate(MeasurementNum = 2)
 
 ph3 <- wq %>%
-  filter(IsDepthProfile == "Y") %>%
   inner_join(wqdepthprofile.keys, by = c("globalid" = "GlobalID")) %>%
   select(WaterQualityDepthProfileID = ID,
          pH = pH_3,
          DataQualityFlagID = pH_Flag_3,
          DataQualityFlagNote = FlagNote) %>%
+  filter(!is.na(pH)) %>%
   mutate(MeasurementNum = 3)
 
 db$WQpH <- rbind(ph1, ph2, ph3) %>% arrange(WaterQualityDepthProfileID)
@@ -226,30 +226,30 @@ ph.keys <- uploadData(db$WQpH, "data.WaterQualityDepthProfilepH", conn)
 
 ## WaterQualityDepthProfileSpCond table
 spcond1 <- wq %>%
-  filter(IsDepthProfile == "Y") %>%
   inner_join(wqdepthprofile.keys, by = c("globalid" = "GlobalID")) %>%
   select(WaterQualityDepthProfileID = ID,
          SpecificConductance_microS_per_cm = SpCond_microS_1,
          DataQualityFlagID = SpCond_Flag_1,
          DataQualityFlagNote = FlagNote) %>%
+  filter(!is.na(SpecificConductance_microS_per_cm)) %>%
   mutate(MeasurementNum = 1)
 
 spcond2 <- wq %>%
-  filter(IsDepthProfile == "Y") %>%
   inner_join(wqdepthprofile.keys, by = c("globalid" = "GlobalID")) %>%
   select(WaterQualityDepthProfileID = ID,
          SpecificConductance_microS_per_cm = SpCond_microS_2,
          DataQualityFlagID = SpCond_Flag_2,
          DataQualityFlagNote = FlagNote) %>%
+  filter(!is.na(SpecificConductance_microS_per_cm)) %>%
   mutate(MeasurementNum = 2)
 
 spcond3 <- wq %>%
-  filter(IsDepthProfile == "Y") %>%
   inner_join(wqdepthprofile.keys, by = c("globalid" = "GlobalID")) %>%
   select(WaterQualityDepthProfileID = ID,
          SpecificConductance_microS_per_cm = SpCond_microS_3,
          DataQualityFlagID = SpCond_Flag_3,
          DataQualityFlagNote = FlagNote) %>%
+  filter(!is.na(SpecificConductance_microS_per_cm)) %>%
   mutate(MeasurementNum = 3)
 
 db$WQSpCond <- rbind(spcond1, spcond2, spcond3) %>% arrange(WaterQualityDepthProfileID)
@@ -257,30 +257,30 @@ spcond.keys <- uploadData(db$WQSpCond, "data.WaterQualityDepthProfileSpCond", co
 
 ## WaterQualityDepthProfileTemp table
 temp1 <- wq %>%
-  filter(IsDepthProfile == "Y") %>%
   inner_join(wqdepthprofile.keys, by = c("globalid" = "GlobalID")) %>%
   select(WaterQualityDepthProfileID = ID,
          WaterTemperature_C = Temp_C_1,
          DataQualityFlagID = Temp_Flag_1,
          DataQualityFlagNote = FlagNote) %>%
+  filter(!is.na(WaterTemperature_C)) %>%
   mutate(MeasurementNum = 1)
 
 temp2 <- wq %>%
-  filter(IsDepthProfile == "Y") %>%
   inner_join(wqdepthprofile.keys, by = c("globalid" = "GlobalID")) %>%
   select(WaterQualityDepthProfileID = ID,
          WaterTemperature_C = Temp_C_2,
          DataQualityFlagID = Temp_Flag_2,
          DataQualityFlagNote = FlagNote) %>%
+  filter(!is.na(WaterTemperature_C)) %>%
   mutate(MeasurementNum = 2)
 
 temp3 <- wq %>%
-  filter(IsDepthProfile == "Y") %>%
   inner_join(wqdepthprofile.keys, by = c("globalid" = "GlobalID")) %>%
   select(WaterQualityDepthProfileID = ID,
          WaterTemperature_C = Temp_C_3,
          DataQualityFlagID = Temp_Flag_3,
          DataQualityFlagNote = FlagNote) %>%
+  filter(!is.na(WaterTemperature_C)) %>%
   mutate(MeasurementNum = 3)
 
 db$WQTemp <- rbind(temp1, temp2, temp3) %>% arrange(WaterQualityDepthProfileID)

@@ -300,7 +300,7 @@ db$ClarityActivity <- visit %>%
          DepthToBottom_ft = LakeDepth_ft,
          ObservationTime = StartDateTime) %>%
   mutate(DataProcessingLevelID = 1,
-         ObservationTime = strftime(ObservationTime, format = "%T"))  # TODO:Double check that we decided not to record secchi measurement time separately
+         ObservationTime = strftime(ObservationTime, format = "%T"))
 clarityactivity.keys <- uploadData(db$ClarityActivity, "data.ClarityActivity", conn)
 
 ## ClaritySecchiDepth table

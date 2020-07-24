@@ -1,4 +1,14 @@
-# Function for inserting data into the database
+### Function for inserting data into a SQL Server database ###
+## Before calling this function, wrangle your data frame so that column names and data types match those of the database table you are
+## inserting into.
+## df:	tibble; the data frame you are inserting into the database
+## table.name:	string; the name of the database table, including schema. Format as schema.tablename (e.g. data.Visit)
+## conn:	pool object; database connection (generated using pool package, see the code below this fxn for an example)
+## has.guid:	boolean; does the data to be inserted have a GUID?
+## keep.guid:	boolean; should the GUID be stored permanently in the database?
+## col.guid:	string; the name of the GUID column (must be same in df and in database table if keep.guid is TRUE) (ignored if has.guid is FALSE)
+## cols.key:	named list of key column(s) in the database table
+
 uploadData <- function(df, table.name, conn, has.guid = TRUE, keep.guid = FALSE, col.guid = "GlobalID", cols.key = list(ID = integer())) {
   # Build SQL statements
   sql.insert <- ""

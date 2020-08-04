@@ -6,7 +6,8 @@ library(tidyverse)
 library(magrittr)
 library(readxl)
 
-dir <- file.path("N:", "STLK", "Deliveries", "OSU_AlkalinityCorrection_2020")
+# dir <- file.path("N:", "STLK", "Deliveries", "OSU_AlkalinityCorrection_2020")
+dir <- file.path(".", "data", "OSU_AlkalinityCorrection_2020")
 file_names <- c("MOJN_101619_alk rev.xlsx",
 							 "MOJN_101818_rev2 alk.xlsx",
 							 "MOJN_102115_alk rev.xlsx",

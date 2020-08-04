@@ -26,7 +26,7 @@ tidy_chem <- function(df) {
 	long_df <- cbind(long_df, select(df, c(data_start + 1, data_start)))
 	# names(long_df)[data_start + 1] <- "Date"
 	
-	long_df %<>% pivot_longer(cols = -any_of(c(metadata_cols, "Date")), names_to = "Parameter")
+	long_df %<>% pivot_longer(cols = -any_of(c(metadata_cols, "Date")), names_to = "Parameter", values_to = "LabValue")
 	
 	data_start <- data_start + 2
 	for (i in seq(data_start, data_end, 2)) {
@@ -36,8 +36,8 @@ tidy_chem <- function(df) {
 		
 		temp_df <- select(df, any_of(c(metadata_cols, col_names)))
 		names(temp_df)[length(names(temp_df)) - 1] <- "Date"
-		temp_df %<>% pivot_longer(cols = -any_of(c(metadata_cols, "Date")), names_to = "Parameter") %>%
-			filter(!is.na(value))
+		temp_df %<>% pivot_longer(cols = -any_of(c(metadata_cols, "Date")), names_to = "Parameter", values_to = "LabValue") %>%
+			filter(!is.na(LabValue))
 		
 		long_df <- rbind(long_df, temp_df)
 	}
@@ -49,3 +49,18 @@ chem_data <- sapply(file_paths, read_xlsx, sheet = "MOJN Data", skip = 3, trim_w
 chem_data_long <- sapply(chem_data, tidy_chem) %>%
 	bind_rows()
 
+# Primary keys for sample type (regular vs. duplicate)
+regular_id <- 1
+duplicate_id <- 4
+triplicate_id <- 5
+
+# Primary keys for data quality flag
+flag_none <- 1
+flag_info <- 2
+
+chem_data_upload <- chem_data_long %>%
+	mutate(SampleTypeID = if_else(grepl("Duplicate", Parameter), true = duplicate_id, false = if_else(grepl("Triplicate", Parameter), true = triplicate_id, false = regular_id))) %>%
+	mutate(Parameter = str_remove(Parameter, "Duplicate\\s|Triplicate\\s"),
+				 DataQualityFlag = flag_none) %>%
+	separate(Parameter, into = c("Characteristic", "Units"), sep = "\\(|\\)")
+	

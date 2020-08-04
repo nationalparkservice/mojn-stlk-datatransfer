@@ -62,6 +62,7 @@ flag_info <- 2
 chem_data_upload <- chem_data_long %>%
 	mutate(SampleTypeID = if_else(grepl("Duplicate", Parameter), true = duplicate_id, false = if_else(grepl("Triplicate", Parameter), true = triplicate_id, false = regular_id))) %>%
 	mutate(Parameter = str_remove(Parameter, "Duplicate\\s|Triplicate\\s"),
-				 DataQualityFlag = flag_none) %>%
+				 DataQualityFlag = if_else(grepl("\\*", LabValue), true = flag_info, false = flag_none),
+				 LabValue = str_remove(LabValue, "\\*")) %>%
 	separate(Parameter, into = c("Characteristic", "Units"), sep = "\\(|\\)")
 	

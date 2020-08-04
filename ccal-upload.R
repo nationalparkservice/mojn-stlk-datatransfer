@@ -64,5 +64,6 @@ chem_data_upload <- chem_data_long %>%
 	mutate(Parameter = str_remove(Parameter, "Duplicate\\s|Triplicate\\s"),
 				 DataQualityFlag = if_else(grepl("\\*", LabValue), true = flag_info, false = flag_none),
 				 LabValue = str_remove(LabValue, "\\*")) %>%
-	separate(Parameter, into = c("Characteristic", "Units"), sep = "\\(|\\)")
+	separate(Parameter, into = c("Characteristic", "Units"), sep = "\\(|\\)") %>%
+	mutate(Parameter = trimws(Parameter, which = "both"))
 	

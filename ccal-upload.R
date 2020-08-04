@@ -6,6 +6,19 @@ library(tidyverse)
 library(magrittr)
 library(readxl)
 
+#------------Open Database Connection---------------#
+db.params.path <- "C:/Users/sewright/Documents/R/mojn-stlk-datatransfer/stlk-database-conn.csv"
+
+db <- list()
+
+## Get Site table from database
+params <- readr::read_csv(db.params.path) %>%  # TODO: Change to real database connection after testing is done
+	as.list()
+params$drv <- odbc::odbc()
+conn <- do.call(pool::dbPool, params)
+#---------------------------#
+
+#------------Data Wrangling---------------#
 # dir <- file.path("N:", "STLK", "Deliveries", "OSU_AlkalinityCorrection_2020")
 dir <- file.path(".", "data", "OSU_AlkalinityCorrection_2020")
 file_names <- c("MOJN_101619_alk rev.xlsx",
@@ -67,3 +80,14 @@ chem_data_upload <- chem_data_long %>%
 	separate(Parameter, into = c("Characteristic", "Units"), sep = "\\(|\\)") %>%
 	mutate(Parameter = trimws(Parameter, which = "both"))
 	
+#---------------------------#
+
+#-------------Update Data in Database--------------#
+
+
+
+#---------------------------#
+
+#------------Close Database Connection---------------#
+pool::poolClose(conn)
+#---------------------------#

@@ -78,14 +78,65 @@ chem_data_upload <- chem_data_long %>%
 				 DataQualityFlag = if_else(grepl("\\*", LabValue), true = flag_info, false = flag_none),
 				 LabValue = str_remove(LabValue, "\\*")) %>%
 	separate(Parameter, into = c("Characteristic", "Units"), sep = "\\(|\\)") %>%
-	mutate(Parameter = trimws(Parameter, which = "both"))
+	mutate(Characteristic = trimws(Characteristic, which = "both"))
 	
 #---------------------------#
 
+#-------------Read & inspect data from Database--------------#
+
+db_chem <- dplyr::tbl(conn, dbplyr::in_schema("data", "WaterChemistryLabResult")) %>%
+	dplyr::collect() %>%
+	dplyr::mutate_if(is.character, trimws)
+
+db_chem_activity <- dplyr::tbl(conn, dbplyr::in_schema("data", "WaterChemistryActivity")) %>%
+	dplyr::collect() %>%
+	dplyr::mutate_if(is.character, trimws)
+
+db_chem_params <- dplyr::tbl(conn, dbplyr::in_schema("ref", "WaterCharacteristic")) %>%
+	dplyr::collect() %>%
+	dplyr::mutate_if(is.character, trimws)
+
+db_chem_params %<>% arrange(Code)
+db_chem_params$LabCode <- c("", "Alkalinity", "", "Ca", "Cl", "Conductivity", "DOC", "K", "Mg", "Na", "NO3-N+NO2-N", "pH", "SO4-S", "TDN", "TDP", "UTN", "UTP")
+
+# Get lab sample number into db_chem
+all_chem <- left_join(db_chem, 
+											select(db_chem_activity, ID, LabSampleNumber),
+											by = c("WaterChemistryActivityID" = "ID"))
+
+# Get lab parameter code into db_chem
+all_chem <- left_join(all_chem,
+											select(db_chem_params, ID, LabCode, Code),
+											by = c("WaterCharacteristicID" = "ID"))
+# Join chem_data_upload to db_chem
+all_chem <- left_join(all_chem,
+											select(chem_data_upload, `Lab Number`, `SampleTypeID`, `Characteristic`, `LabValue`, `Site ID`),
+											by = c("LabSampleNumber" = "Lab Number", "SampleTypeID" = "SampleTypeID", "LabCode" = "Characteristic"))
+
+#---------------------------#
+
 #-------------Update Data in Database--------------#
+chem_to_update <- filter(all_chem, round(as.numeric(LabValue.x), 4) != round(as.numeric(LabValue.y), 4))
 
+qry <- paste0("UPDATE data.WaterChemistryLabResult ",
+							"SET LabValue = ? ",
+							"WHERE ID = #;")
+update_qry <- ""
 
+for (i in 1:nrow(chem_to_update)) {
+	data_row <- chem_to_update[i,]
+	qry_string <- str_replace(qry, "\\?", as.character(data_row['LabValue.y']))
+	qry_string <- str_replace(qry_string, "\\#", as.character(data_row['ID']))
+	update_qry <- paste(update_qry, qry_string)
+}
 
+pool::poolWithTransaction(pool = conn, func = function(conn) {
+	
+	res <- DBI::dbSendStatement(conn, update_qry)
+	rows_affected <- DBI::dbGetRowsAffected(res)
+})
+	
+rows_affected
 #---------------------------#
 
 #------------Close Database Connection---------------#

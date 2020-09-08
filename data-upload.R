@@ -2,12 +2,13 @@
 
 #---------Settings----------#
 # gdb.path <- "M:\\MONITORING\\StreamsLakes\\Data\\WY2019\\FieldData\\Lakes_Annual\\STLK_AnnualLakeVisit_20191022.gdb"
-gdb.path <- "C:\\Users\\sewright\\Desktop\\STLKPhotoDownloadTest\\MOJN_STLK_AnnualLakeVisit_20200130.gdb"
-# photo.dest <- "M:\\MONITORING\\StreamsLakes\\Data\\WY2019\\ImageData\\Lakes"
-# originals.dest <- "M:\\MONITORING\\_FieldPhotoOriginals_DoNotModify\\AGOL_STLK"
-photo.dest <- "C:\\Users\\sewright\\Desktop\\STLKPhotoDownloadTest"
-originals.dest <- "C:\\Users\\sewright\\Desktop\\STLKPhotoDownloadTest\\Originals"
-db.params.path <- "C:/Users/sewright/Documents/R/mojn-stlk-datatransfer/stlk-database-conn.csv"
+gdb.path <- "C:\\Users\\sewright\\Desktop\\STLKPhotoDownloadTest\\MOJN_STLK_AnnualLakeVisit_Export_20200821.gdb"
+photo.dest <- "M:\\MONITORING\\StreamsLakes\\Data\\WY2019\\ImageData\\Lakes"
+originals.dest <- "M:\\MONITORING\\_FieldPhotoOriginals_DoNotModify\\AGOL_STLK"
+db.params.path <- "M:\\MONITORING\\StreamsLakes\\Data\\Database\\ConnectFromR\\stlk-database-conn.csv"
+#photo.dest <- "C:\\Users\\sewright\\Desktop\\STLKPhotoDownloadTest"
+#originals.dest <- "C:\\Users\\sewright\\Desktop\\STLKPhotoDownloadTest\\Originals"
+#db.params.path <- "C:/Users/sewright/Documents/R/mojn-stlk-datatransfer/stlk-database-conn.csv"
 #---------------------------#
 
 db <- list()
@@ -54,7 +55,10 @@ db$Visit <- visit %>%
          VisitGroupID,
          VisitTypeID,
          MonitoringStatusID,
-         GPSUnitID,
+         WindSpeedID = WindSpeed,
+         CloudCoverageID = Cloud,
+         PrecipitationID = Precip,
+         Temperature_F_ID = Temp_deg_F,
          ProtocolID = ProtocolPackageID,
          IsLakeDry) %>%
   mutate(VisitDate = format.Date(StartDateTime, "%Y-%m-%d"),
@@ -300,7 +304,7 @@ db$ClarityActivity <- visit %>%
          DepthToBottom_ft = LakeDepth_ft,
          ObservationTime = StartDateTime) %>%
   mutate(DataProcessingLevelID = 1,
-         ObservationTime = strftime(ObservationTime, format = "%T"))  # TODO:Double check that we decided not to record secchi measurement time separately
+         ObservationTime = strftime(ObservationTime, format = "%T"))
 clarityactivity.keys <- uploadData(db$ClarityActivity, "data.ClarityActivity", conn)
 
 ## ClaritySecchiDepth table

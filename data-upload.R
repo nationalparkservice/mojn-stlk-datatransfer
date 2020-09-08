@@ -55,7 +55,10 @@ db$Visit <- visit %>%
          VisitGroupID,
          VisitTypeID,
          MonitoringStatusID,
-         GPSUnitID,
+         WindSpeedID = WindSpeed,
+         CloudCoverageID = Cloud,
+         PrecipitationID = Precip,
+         Temperature_F_ID = Temp_deg_F,
          ProtocolID = ProtocolPackageID,
          IsLakeDry) %>%
   mutate(VisitDate = format.Date(StartDateTime, "%Y-%m-%d"),

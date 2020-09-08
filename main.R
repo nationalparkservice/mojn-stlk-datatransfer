@@ -1,3 +1,4 @@
+Sys.setenv(RETICULATE_PYTHON = "C:/Python27/ArcGISx6410.5")
 library(reticulate)
 library(jsonlite)
 library(httr)

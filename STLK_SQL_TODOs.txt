@@ -1,0 +1,49 @@
+The schema changes I did were adding global ID where they didn't exist, and Survey123_LastEditedFields to those tables that are the same as each featurelayer/ table in S123 ( for example Visit, logger deploy)
+
+
+NOTE -  you need to run an update query in SQL to add the global ID's from data.visit joined on Visit ID to the following tables (these are ones based on the annual visit S123 table): PhotoActivity, WaterQualityActivity, ClarityActivity, WaterChemistryActivity
+using this code (adjust for each table):
+
+UPDATE data.PhotoActivity
+SET data.PhotoActivity.GlobalID = v.GlobalID
+FROM data.PhotoActivity as p
+INNER JOIN data.Visit as v
+ON p.VisitID = v.ID
+
+
+Here is additional query to fix visit personel table:
+UPDATE data.VisitPersonnel
+SET data.VisitPersonnel.GlobalID = t.GlobalID,
+	data.VisitPersonnel.Survey123_LastEditedDate = t.Survey123_LastEditedDate
+FROM data.VisitPersonnel as p
+INNER JOIN dbo.Temp as t
+ON (p.VisitID = t.VisitID AND
+	p.PersonnelID = t.PersonnelID AND
+	p.PersonnelRoleID = t.PersonnelRoleID)
+
+
+Here are additional query's to update the secchi depth table with the 6 unique global IDs:
+
+UPDATE [MOJN_STLK].[data].[ClaritySecchiDepth]
+SET [GlobalID] = 'fd0b6fdd-78c8-487c-9247-2174ca42e5fa_2'
+WHERE [ID] = 23
+
+UPDATE [MOJN_STLK].[data].[ClaritySecchiDepth]
+SET [GlobalID] = '2b06e0be-420e-43c1-aa77-db12e7aa49f3_2'
+WHERE [ID] = 24
+
+UPDATE [MOJN_STLK].[data].[ClaritySecchiDepth]
+SET [GlobalID] = 'ef75b2c3-dd9f-4e83-a96d-da5a88b2ede4_2'
+WHERE [ID] = 25
+
+UPDATE [MOJN_STLK].[data].[ClaritySecchiDepth]
+SET [GlobalID] = 'fd0b6fdd-78c8-487c-9247-2174ca42e5fa_3'
+WHERE [ID] = 26
+
+UPDATE [MOJN_STLK].[data].[ClaritySecchiDepth]
+SET [GlobalID] = '2b06e0be-420e-43c1-aa77-db12e7aa49f3_3'
+WHERE [ID] = 27
+
+UPDATE [MOJN_STLK].[data].[ClaritySecchiDepth]
+SET [GlobalID] = 'ef75b2c3-dd9f-4e83-a96d-da5a88b2ede4_3'
+WHERE [ID] = 28

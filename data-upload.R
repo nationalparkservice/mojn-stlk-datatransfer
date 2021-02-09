@@ -274,8 +274,7 @@ photoact.keys <- uploadData(db$PhotoActivity, "data.PhotoActivity", conn, keep.g
 names(photoact.keys) <- c("PhotoActivityID", "VisitGlobalID", "action")
 
 ## Photo table- because it uses images..
-# I think we only need to worry about the photo table to see if there is any updates.so need to make a full photo activity keys and base 
-# or just leave as theres only a notes field that could be updated later? would anyone actually update that?
+# I left as is theres only a notes field that could be updated later? would anyone actually update that? and it gets complicated with the photo python part
 db$Photo <- annual_photos %>%
   mutate(VisitGUID = tolower(VisitGUID),
          GlobalID = tolower(GlobalID)) %>%
@@ -300,7 +299,7 @@ dups<- crew %>%
   filter(n>1)
 
 if (nrow(dups)>0){
-  print("STOP! There are some duplicate crewnames")
+  print("STOP! There are some duplicate crewnames - check in Survey123")
   dups
 }else{
   ## build the visit personel table of records that are new or have been updated (convert dates to chars for compare only)
@@ -308,7 +307,7 @@ if (nrow(dups)>0){
     left_join(visitPersonelIDs, by = c("globalid" = "SQL.GlobalID" )) %>% 
     filter(as.character(Survey123_LastEditedDate) != as.character(SQL.Survey123_LastEditedDate) | is.na(VisitID))
   
-  db$VisitPersonnel <- crew %>%
+  db$VisitPersonnel <- baseVP %>%
     inner_join(fullVisit.keys, by = c("parentglobalid" = "GlobalID")) %>%
     select(VisitID = ID,
            GlobalID = globalid,

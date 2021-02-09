@@ -11,38 +11,48 @@ db.params.path <- "C:\\Users\\EEdson\\Desktop\\Projects\\MOJN\\stlk-database-con
 #db.params.path <- "C:/Users/sewright/Documents/R/mojn-stlk-datatransfer/stlk-database-conn.csv"
 #---------------------------#
 
-db <- list()
-
-## Get needed tables from database for joining and comparing records
+#--------pull tables-----------#
+# connect to SQl DB
 params <- readr::read_csv(db.params.path) %>%  # TODO: Change to real database connection after testing is done
   as.list()
 params$drv <- odbc::odbc()
 conn <- do.call(pool::dbPool, params)
+
+## Get needed tables from database for joining and comparing records
 sites <- dplyr::tbl(conn, dbplyr::in_schema("data", "Site")) %>%
   dplyr::collect()
 
-## get Visit table ID's, Global ID's, and last edited date 
+# get Visit table ID's, Global ID's, and last edited date 
 visitIDs <- dplyr::tbl(conn, dbplyr::in_schema("data", "Visit")) %>% 
   dplyr::select(ID,GlobalID,Survey123_LastEditedDate) %>% 
   dplyr::collect() %>% 
   dplyr::rename(SQL.ID = ID, SQL.GlobalID = GlobalID, SQL.Survey123_LastEditedDate = Survey123_LastEditedDate) %>% 
   dplyr::mutate(SQL.GlobalID = tolower(SQL.GlobalID))
 
-## get LoggerDeployment table ID's, Global ID's, and last edited date   
+# get LoggerDeployment table ID's, Global ID's, and last edited date   
 loggerDeployIDs<- dplyr::tbl(conn, dbplyr::in_schema("data", "LoggerDeployment")) %>% 
   dplyr::select(ID,GlobalID,Survey123_LastEditedDate) %>% 
   dplyr::collect() %>% 
   dplyr::rename(SQL.ID = ID, SQL.GlobalID = GlobalID, SQL.Survey123_LastEditedDate = Survey123_LastEditedDate) %>% 
   dplyr::mutate(SQL.GlobalID = tolower(SQL.GlobalID))
 
-## get LoggerDownload table ID's, Global ID's, and last edited date   
+# get LoggerDownload table ID's, Global ID's, and last edited date   
 loggerDownloadIDs<- dplyr::tbl(conn, dbplyr::in_schema("data", "LoggerDownload")) %>% 
   dplyr::select(ID,GlobalID,Survey123_LastEditedDate) %>% 
   dplyr::collect() %>% 
   dplyr::rename(SQL.ID = ID, SQL.GlobalID = GlobalID, SQL.Survey123_LastEditedDate = Survey123_LastEditedDate) %>% 
   dplyr::mutate(SQL.GlobalID = tolower(SQL.GlobalID))
-#############################################################
-# please run in 2021 once only. this will populate the VisitPernonel table with the survey123 edited date and global ID from FieldCrew where there are already records in the DB. Thats so the merge code will run properly later. after the iunitial update, it wont ever need doing again!
+
+# get SecchiMeasurements table ID's, Global ID's, and last edited date   
+secchiIDs<- dplyr::tbl(conn, dbplyr::in_schema("data", "ClaritySecchiDepth")) %>% 
+  dplyr::select(ID,GlobalID,Survey123_LastEditedDate) %>% 
+  dplyr::collect() %>% 
+  dplyr::rename(SQL.ID = ID, SQL.GlobalID = GlobalID, SQL.Survey123_LastEditedDate = Survey123_LastEditedDate) %>% 
+  dplyr::mutate(SQL.GlobalID = tolower(SQL.GlobalID))
+
+
+############# For 2020 data only #####################################
+# please run in 2021 once only. this will populate the VisitPersonell table with the survey123 edited date and global ID from FieldCrew where there are already records in the DB. Thats so the merge code will run properly later. after the initial update, it won't ever need doing again!
 VP_SQLupdate <- crew %>%
   inner_join(visit.keys, by = c("parentglobalid" = "GlobalID")) %>%
   select(VisitID = ID,
@@ -58,7 +68,7 @@ sql.update = paste0("UPDATE data.VisitPersonnel",
                    " INNER JOIN dbo.Temp as t",
                    " ON (p.VisitID = t.VisitID AND p.PersonnelID = t.PersonnelID AND p.PersonnelRoleID = t.PersonnelRoleID)")
 
-#insert temp target table - for testing. The merge works but not with the insert output
+#insert temp target table 
 poolWithTransaction(pool = conn, func = function(conn) {
   dbCreateTable(conn, "Temp", VP_SQLupdate)
   dbAppendTable(conn, "Temp", VP_SQLupdate)
@@ -68,8 +78,7 @@ poolWithTransaction(pool = conn, func = function(conn) {
   dbClearResult(qry)
   dbRemoveTable(conn, "Temp")
   })
-
-###################################################
+########## end update visit personell ######################################
 
 ## get Visit Personal table ID's, Global ID's, and last edited date. Compare with s123 crew table
 visitPersonelIDs <- dplyr::tbl(conn, dbplyr::in_schema("data", "VisitPersonnel")) %>% 
@@ -77,15 +86,15 @@ visitPersonelIDs <- dplyr::tbl(conn, dbplyr::in_schema("data", "VisitPersonnel")
   dplyr::select(VisitID,GlobalID,Survey123_LastEditedDate) %>% 
   dplyr::rename(SQL.GlobalID = GlobalID, SQL.Survey123_LastEditedDate = Survey123_LastEditedDate)
 
-## get Visit table ID's, Global ID's, and last edited date 
+## get WQ activity table ID's, Global ID's, and last edited date 
 WQactivityIDs <- dplyr::tbl(conn, dbplyr::in_schema("data", "WaterQualityActivity")) %>% 
   dplyr::select(ID,GlobalID) %>% 
   dplyr::collect() %>% 
   dplyr::rename(SQL.ID = ID, SQL.GlobalID = GlobalID) %>% 
   dplyr::mutate(SQL.GlobalID = tolower(SQL.GlobalID))
 
-#############################################################
-# please run in 2021 once only. this will populate the Water Quality Depth Profile table with the survey123 edited date and global ID from WQ reading where there are already records in the DB. Thats so the merge code will run properly later. after the iunitial update, it wont ever need doing again!
+############# For 2020 data only #####################################
+# This will populate the Water Quality Depth Profile table with the survey123 edited date and global ID from WQ reading where there are already records in the DB. Thats so the merge code will run properly later. after the iunitial update, it wont ever need doing again!
 WQR_SQLupdate <- wq %>%
   inner_join(wqactivity.keys, by = c("parentglobalid" = "GlobalID")) %>%
   select(WaterQualityActivityID = ID,
@@ -102,7 +111,7 @@ sql.update = paste0("UPDATE data.WaterQualityDepthProfile",
                     " INNER JOIN dbo.Temp as t",
                     " ON (p.WaterQualityActivityID = t.WaterQualityActivityID AND p.MeasurementDepth_ft = t.MeasurementDepth_ft)")
 
-#insert temp target table - for testing. The merge works but not with the insert output
+#insert temp target table 
 poolWithTransaction(pool = conn, func = function(conn) {
   dbCreateTable(conn, "Temp", WQR_SQLupdate)
   dbAppendTable(conn, "Temp", WQR_SQLupdate)
@@ -112,14 +121,25 @@ poolWithTransaction(pool = conn, func = function(conn) {
   dbClearResult(qry)
   dbRemoveTable(conn, "Temp")
 })
+########## end update WQ depth profile ######################################
 
-###################################################
+#get WQ reading table ID's, Global ID's
 WQreadingIDs <-dplyr::tbl(conn, dbplyr::in_schema("data", "WaterQualityDepthProfile")) %>% 
   dplyr::collect() %>% 
   dplyr::select(ID,GlobalID,Survey123_LastEditedDate) %>% 
   dplyr::rename(SQL.ID = ID, SQL.GlobalID = GlobalID, SQL.Survey123_LastEditedDate = Survey123_LastEditedDate)
 
-###################################################################################
+
+# get Secchi activity table ID's, Global ID's
+SecchiActivityIDs <- dplyr::tbl(conn, dbplyr::in_schema("data", "ClarityActivity")) %>% 
+  dplyr::select(ID,GlobalID) %>% 
+  dplyr::collect() %>% 
+  dplyr::rename(SQL.ID = ID, SQL.GlobalID = GlobalID) %>% 
+  dplyr::mutate(SQL.GlobalID = tolower(SQL.GlobalID))
+
+#--------------------------------#
+
+#--------- Python Script for photos ----------------#
 # Download photos using Python script
 
 # Get lookups of photo codes for photo naming
@@ -144,8 +164,11 @@ annual_photos <- download_visit_photos(attTable = photo.table, photoFeatureClass
 annual_photos <- as_tibble(annual_photos)
 annual_photos$VisitGUID <- str_remove_all(annual_photos$VisitGUID, "\\{|\\}")
 annual_photos$GlobalID <- str_remove_all(annual_photos$GlobalID, "\\{|\\}")
-##################################################################################
-### munge tables and upload
+#--------------------------------#
+
+
+#---------munge tables and upload--------#
+db <- list()
 
 ## Visit table
 # build the base visit table of records that are new or  are already in the SQL DB but have been updated in S123
@@ -375,7 +398,7 @@ do3 <- wq %>%
 
 db$WQDissolvedOxygen <- rbind(do1, do2, do3) %>% arrange(WaterQualityDepthProfileID)
 
-############################ Only Do once!! ############
+############# For 2020 data only #####################################
 #this will update the records currently in thr SQL database. only needs running once
 sql.update = paste0("UPDATE data.WaterQualityDepthProfileDO",
                     " SET data.WaterQualityDepthProfileDO.GlobalID = t.GlobalID",
@@ -383,7 +406,7 @@ sql.update = paste0("UPDATE data.WaterQualityDepthProfileDO",
                     " INNER JOIN dbo.Temp as t",
                     " ON (p.WaterQualityDepthProfileID = t.WaterQualityDepthProfileID AND p.MeasurementNum = t.MeasurementNum)")
 
-#insert temp target table - for testing. The merge works but not with the insert output
+#insert temp target table 
 poolWithTransaction(pool = conn, func = function(conn) {
   dbCreateTable(conn, "Temp", db$WQDissolvedOxygen)
   dbAppendTable(conn, "Temp", db$WQDissolvedOxygen)
@@ -393,101 +416,153 @@ poolWithTransaction(pool = conn, func = function(conn) {
   dbClearResult(qry)
   dbRemoveTable(conn, "Temp")
 })
-######################################
+############## end update WQ DO table ########################
 do.keys <- uploadData(db$WQDissolvedOxygen, "data.WaterQualityDepthProfileDO", conn,keep.guid = TRUE)
 
-## WaterQualityDepthProfilepH table - GOT TO HERE:REPEAT DO PROCESS
+
+## WaterQualityDepthProfilepH table
 ph1 <- wq %>%
   inner_join(wqdepthprofile.keys, by = c("globalid" = "GlobalID")) %>%
-  select(WaterQualityDepthProfileID = ID,
-         pH = pH_1,
-         DataQualityFlagID = pH_Flag_1,
-         DataQualityFlagNote = FlagNote) %>%
+  select(GlobalID = globalid,
+         WaterQualityDepthProfileID = ID,
+         pH = pH_1) %>%
   filter(!is.na(pH)) %>%
-  mutate(MeasurementNum = 1)
+  mutate(MeasurementNum = 1, GlobalID = paste0(GlobalID,"_1"))
 
 ph2 <- wq %>%
   inner_join(wqdepthprofile.keys, by = c("globalid" = "GlobalID")) %>%
-  select(WaterQualityDepthProfileID = ID,
-         pH = pH_2,
-         DataQualityFlagID = pH_Flag_2,
-         DataQualityFlagNote = FlagNote) %>%
+  select(GlobalID = globalid,
+         WaterQualityDepthProfileID = ID,
+         pH = pH_2) %>%
   filter(!is.na(pH)) %>%
-  mutate(MeasurementNum = 2)
+  mutate(MeasurementNum = 2,GlobalID = paste0(GlobalID,"_2"))
 
 ph3 <- wq %>%
   inner_join(wqdepthprofile.keys, by = c("globalid" = "GlobalID")) %>%
-  select(WaterQualityDepthProfileID = ID,
-         pH = pH_3,
-         DataQualityFlagID = pH_Flag_3,
-         DataQualityFlagNote = FlagNote) %>%
+  select(GlobalID = globalid,
+         WaterQualityDepthProfileID = ID,
+         pH = pH_3) %>%
   filter(!is.na(pH)) %>%
-  mutate(MeasurementNum = 3)
+  mutate(MeasurementNum = 3,GlobalID = paste0(GlobalID,"_3"))
 
 db$WQpH <- rbind(ph1, ph2, ph3) %>% arrange(WaterQualityDepthProfileID)
-ph.keys <- uploadData(db$WQpH, "data.WaterQualityDepthProfilepH", conn)
+
+############################  For 2020 data only ############
+#this will update the records currently in thr SQL database. only needs running once
+sql.update = paste0("UPDATE data.WaterQualityDepthProfilepH",
+                    " SET data.WaterQualityDepthProfilepH.GlobalID = t.GlobalID",
+                    " FROM data.WaterQualityDepthProfilepH as p",
+                    " INNER JOIN dbo.Temp as t",
+                    " ON (p.WaterQualityDepthProfileID = t.WaterQualityDepthProfileID AND p.MeasurementNum = t.MeasurementNum)")
+
+#insert temp target table
+poolWithTransaction(pool = conn, func = function(conn) {
+  dbCreateTable(conn, "Temp", db$WQpH)
+  dbAppendTable(conn, "Temp", db$WQpH)
+  
+  qry <- dbSendQuery(conn, sql.update)
+  dbFetch(qry)
+  dbClearResult(qry)
+  dbRemoveTable(conn, "Temp")
+})
+################ end update WQ pH table######################
+ph.keys <- uploadData(db$WQpH, "data.WaterQualityDepthProfilepH", conn, keep.guid = TRUE)
 
 ## WaterQualityDepthProfileSpCond table
 spcond1 <- wq %>%
   inner_join(wqdepthprofile.keys, by = c("globalid" = "GlobalID")) %>%
-  select(WaterQualityDepthProfileID = ID,
-         SpecificConductance_microS_per_cm = SpCond_microS_1,
-         DataQualityFlagID = SpCond_Flag_1,
-         DataQualityFlagNote = FlagNote) %>%
+  select(GlobalID = globalid,
+         WaterQualityDepthProfileID = ID,
+         SpecificConductance_microS_per_cm = SpCond_microS_1) %>%
   filter(!is.na(SpecificConductance_microS_per_cm)) %>%
-  mutate(MeasurementNum = 1)
+  mutate(MeasurementNum = 1, GlobalID = paste0(GlobalID,"_1"))
 
 spcond2 <- wq %>%
   inner_join(wqdepthprofile.keys, by = c("globalid" = "GlobalID")) %>%
-  select(WaterQualityDepthProfileID = ID,
-         SpecificConductance_microS_per_cm = SpCond_microS_2,
-         DataQualityFlagID = SpCond_Flag_2,
-         DataQualityFlagNote = FlagNote) %>%
+  select(GlobalID = globalid,
+         WaterQualityDepthProfileID = ID,
+         SpecificConductance_microS_per_cm = SpCond_microS_2) %>%
   filter(!is.na(SpecificConductance_microS_per_cm)) %>%
-  mutate(MeasurementNum = 2)
+  mutate(MeasurementNum = 2, GlobalID = paste0(GlobalID,"_2"))
 
 spcond3 <- wq %>%
   inner_join(wqdepthprofile.keys, by = c("globalid" = "GlobalID")) %>%
-  select(WaterQualityDepthProfileID = ID,
-         SpecificConductance_microS_per_cm = SpCond_microS_3,
-         DataQualityFlagID = SpCond_Flag_3,
-         DataQualityFlagNote = FlagNote) %>%
+  select(GlobalID = globalid,
+         WaterQualityDepthProfileID = ID,
+         SpecificConductance_microS_per_cm = SpCond_microS_3) %>%
   filter(!is.na(SpecificConductance_microS_per_cm)) %>%
-  mutate(MeasurementNum = 3)
+  mutate(MeasurementNum = 3, GlobalID = paste0(GlobalID,"_3"))
 
 db$WQSpCond <- rbind(spcond1, spcond2, spcond3) %>% arrange(WaterQualityDepthProfileID)
-spcond.keys <- uploadData(db$WQSpCond, "data.WaterQualityDepthProfileSpCond", conn)
+
+############################ For 2020 data only ############
+#this will update the records currently in thr SQL database. only needs running once
+sql.update = paste0("UPDATE data.WaterQualityDepthProfileSpCond",
+                    " SET data.WaterQualityDepthProfileSpCond.GlobalID = t.GlobalID",
+                    " FROM data.WaterQualityDepthProfileSpCond as p",
+                    " INNER JOIN dbo.Temp as t",
+                    " ON (p.WaterQualityDepthProfileID = t.WaterQualityDepthProfileID AND p.MeasurementNum = t.MeasurementNum)")
+
+#insert temp target table
+poolWithTransaction(pool = conn, func = function(conn) {
+  dbCreateTable(conn, "Temp", db$WQSpCond)
+  dbAppendTable(conn, "Temp", db$WQSpCond)
+  
+  qry <- dbSendQuery(conn, sql.update)
+  dbFetch(qry)
+  dbClearResult(qry)
+  dbRemoveTable(conn, "Temp")
+})
+############### end update WQ spcond table #######################
+spcond.keys <- uploadData(db$WQSpCond, "data.WaterQualityDepthProfileSpCond", conn, keep.guid = TRUE)
 
 ## WaterQualityDepthProfileTemp table
 temp1 <- wq %>%
   inner_join(wqdepthprofile.keys, by = c("globalid" = "GlobalID")) %>%
-  select(WaterQualityDepthProfileID = ID,
-         WaterTemperature_C = Temp_C_1,
-         DataQualityFlagID = Temp_Flag_1,
-         DataQualityFlagNote = FlagNote) %>%
+  select(GlobalID = globalid,
+         WaterQualityDepthProfileID = ID,
+         WaterTemperature_C = Temp_C_1) %>%
   filter(!is.na(WaterTemperature_C)) %>%
-  mutate(MeasurementNum = 1)
+  mutate(MeasurementNum = 1, GlobalID = paste0(GlobalID,"_1"))
 
 temp2 <- wq %>%
   inner_join(wqdepthprofile.keys, by = c("globalid" = "GlobalID")) %>%
-  select(WaterQualityDepthProfileID = ID,
-         WaterTemperature_C = Temp_C_2,
-         DataQualityFlagID = Temp_Flag_2,
-         DataQualityFlagNote = FlagNote) %>%
+  select(GlobalID = globalid,
+         WaterQualityDepthProfileID = ID,
+         WaterTemperature_C = Temp_C_2) %>%
   filter(!is.na(WaterTemperature_C)) %>%
-  mutate(MeasurementNum = 2)
+  mutate(MeasurementNum = 2,GlobalID = paste0(GlobalID,"_2"))
 
 temp3 <- wq %>%
   inner_join(wqdepthprofile.keys, by = c("globalid" = "GlobalID")) %>%
-  select(WaterQualityDepthProfileID = ID,
-         WaterTemperature_C = Temp_C_3,
-         DataQualityFlagID = Temp_Flag_3,
-         DataQualityFlagNote = FlagNote) %>%
+  select(GlobalID = globalid,
+         WaterQualityDepthProfileID = ID,
+         WaterTemperature_C = Temp_C_3) %>%
   filter(!is.na(WaterTemperature_C)) %>%
-  mutate(MeasurementNum = 3)
+  mutate(MeasurementNum = 3, GlobalID = paste0(GlobalID,"_3"))
 
 db$WQTemp <- rbind(temp1, temp2, temp3) %>% arrange(WaterQualityDepthProfileID)
-temp.keys <- uploadData(db$WQTemp, "data.WaterQualityDepthProfileTemperature", conn)
+
+############################ For 2020 data only ############
+#this will update the records currently in thr SQL database. only needs running once
+sql.update = paste0("UPDATE data.WaterQualityDepthProfileTemperature",
+                    " SET data.WaterQualityDepthProfileTemperature.GlobalID = t.GlobalID",
+                    " FROM data.WaterQualityDepthProfileTemperature as p",
+                    " INNER JOIN dbo.Temp as t",
+                    " ON (p.WaterQualityDepthProfileID = t.WaterQualityDepthProfileID AND p.MeasurementNum = t.MeasurementNum)")
+
+#insert temp target table
+poolWithTransaction(pool = conn, func = function(conn) {
+  dbCreateTable(conn, "Temp", db$WQTemp)
+  dbAppendTable(conn, "Temp", db$WQTemp)
+  
+  qry <- dbSendQuery(conn, sql.update)
+  dbFetch(qry)
+  dbClearResult(qry)
+  dbRemoveTable(conn, "Temp")
+})
+################ end update WQ temp table ######################
+temp.keys <- uploadData(db$WQTemp, "data.WaterQualityDepthProfileTemperature", conn, keep.guid = TRUE)
 
 ## ClarityActivity table
 db$ClarityActivity <- visit %>%
@@ -501,29 +576,46 @@ db$ClarityActivity <- visit %>%
          ObservationTime = StartDateTime) %>%
   mutate(DataProcessingLevelID = 1,
          ObservationTime = strftime(ObservationTime, format = "%T"))
-clarityactivity.keys <- uploadData(db$ClarityActivity, "data.ClarityActivity", conn)
+clarityactivity.keys <- uploadData(db$ClarityActivity, "data.ClarityActivity", conn, keep.guid = TRUE)
 
-## ClaritySecchiDepth table
-desc <- secchi %>%
-  inner_join(clarityactivity.keys, by = c("parentglobalid" = "GlobalID")) %>%
-  select(ClarityActivityID = ID,
-         Depth_ft = DescendingDepth_ft) %>%
-  mutate(DepthTypeID = 2) # Descending
+## ClaritySecchiDepth table - related table so have to compare edited dates directly
+# build the secci table of records that are new or have been updated (convert dates to chars for compare only)
+baseSD <- secchi %>%
+  left_join(secchiIDs, by = c("globalid" = "SQL.GlobalID" )) %>%
+  filter(as.character(Survey123_LastEditedDate) != as.character(SQL.Survey123_LastEditedDate) | is.na(SQL.ID))
 
-asc <- secchi %>%
+## need to make a full ClarityActivity  keys list of all guids and IDs not just the new ones so need to merge disturbanceActivity keys with DistActivityIDs
+fullclarityactivity.keys <- clarityactivity.keys %>%
+  select(ID, GlobalID) %>%
+  union(rename(subset(SecchiActivityIDs, select = c(SQL.ID, SQL.GlobalID)),
+               ID = SQL.ID, GlobalID = SQL.GlobalID ))
+
+desc <- baseSD %>%
+  inner_join(fullclarityactivity.keys, by = c("parentglobalid" = "GlobalID")) %>%
+  select(GlobalID = globalid,
+         ClarityActivityID = ID,
+         Depth_ft = DescendingDepth_ft,
+         Survey123_LastEditedDate) %>%
+  mutate(DepthTypeID = 2, GlobalID =paste0(GlobalID,"_2")) # Descending
+
+asc <- baseSD %>%
   inner_join(clarityactivity.keys, by = c("parentglobalid" = "GlobalID")) %>%
-  select(ClarityActivityID = ID,
-         Depth_ft = AscendingDepth_ft) %>%
-  mutate(DepthTypeID = 3) # Ascending)
+  select(GlobalID = globalid,
+         ClarityActivityID = ID,
+         Depth_ft = AscendingDepth_ft,
+         Survey123_LastEditedDate) %>%
+  mutate(DepthTypeID = 3, GlobalID =paste0(GlobalID,"_3")) # Ascending)
 
 db$SecchiDepth <- rbind(desc, asc) %>% arrange(ClarityActivityID, DepthTypeID)
+### Use the SQL queries in the notes to manually update the 6 records already in the DB first
+secchi.keys <- uploadData(db$SecchiDepth, "data.ClaritySecchiDepth", conn, keep.guid = TRUE)
 
-secchi.keys <- uploadData(db$SecchiDepth, "data.ClaritySecchiDepth", conn)
 
 ## WaterChemistryActivity table
 db$WaterChemistryActivity <- visit %>%
   inner_join(visit.keys, by = c("globalid" = "GlobalID")) %>%
   select(VisitID = ID,
+         GlobalID = globalid,
          SampleCollectionMethodID = SampleMethodID,
          NumberOfBottlesFiltered = BottleCountFiltered,
          NumberOfBottlesUnfiltered = BottleCountUnfiltered,
@@ -531,7 +623,7 @@ db$WaterChemistryActivity <- visit %>%
   mutate(DataProcessingLevelID = 1,
          LaboratoryID = 1)  # CCAL
 
-chem.keys <- uploadData(db$WaterChemistryActivity, "data.WaterChemistryActivity", conn)
+chem.keys <- uploadData(db$WaterChemistryActivity, "data.WaterChemistryActivity", conn,keep.guid = TRUE)
 
 
 pool::poolClose(conn)

@@ -6,7 +6,7 @@ library(tidyverse)
 library(pool)
 library(dbplyr)
 library(DBI)
-source("utils.R")
+source("utils_expanded.R")
 
 source("agol-download.R")
 source("data-upload.R")

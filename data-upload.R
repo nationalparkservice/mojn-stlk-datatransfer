@@ -42,31 +42,31 @@ secchiIDs<- dplyr::tbl(conn, dbplyr::in_schema("data", "ClaritySecchiDepth")) %>
 
 ############# For 2020 data only #####################################
 # please run in 2021 once only. this will populate the VisitPersonell table with the survey123 edited date and global ID from FieldCrew where there are already records in the DB. Thats so the merge code will run properly later. after the initial update, it won't ever need doing again!
-VP_SQLupdate <- crew %>%
-  inner_join(visit.keys, by = c("parentglobalid" = "GlobalID")) %>%
-  select(VisitID = ID,
-         GlobalID = globalid,
-         PersonnelID = Initials,
-         Survey123_LastEditedDate) %>% 
-  mutate(PersonnelRoleID = 5)
-
-sql.update = paste0("UPDATE data.VisitPersonnel",
-                   " SET data.VisitPersonnel.GlobalID = t.GlobalID,",
-                   " data.VisitPersonnel.Survey123_LastEditedDate = t.Survey123_LastEditedDate",
-                   " FROM data.VisitPersonnel as p",
-                   " INNER JOIN dbo.Temp as t",
-                   " ON (p.VisitID = t.VisitID AND p.PersonnelID = t.PersonnelID AND p.PersonnelRoleID = t.PersonnelRoleID)")
-
-#insert temp target table 
-poolWithTransaction(pool = conn, func = function(conn) {
-  dbCreateTable(conn, "Temp", VP_SQLupdate)
-  dbAppendTable(conn, "Temp", VP_SQLupdate)
-
-  qry <- dbSendQuery(conn, sql.update)
-  dbFetch(qry)
-  dbClearResult(qry)
-  dbRemoveTable(conn, "Temp")
-  })
+# VP_SQLupdate <- crew %>%
+#   inner_join(visit.keys, by = c("parentglobalid" = "GlobalID")) %>%
+#   select(VisitID = ID,
+#          GlobalID = globalid,
+#          PersonnelID = Initials,
+#          Survey123_LastEditedDate) %>% 
+#   mutate(PersonnelRoleID = 5)
+# 
+# sql.update = paste0("UPDATE data.VisitPersonnel",
+#                    " SET data.VisitPersonnel.GlobalID = t.GlobalID,",
+#                    " data.VisitPersonnel.Survey123_LastEditedDate = t.Survey123_LastEditedDate",
+#                    " FROM data.VisitPersonnel as p",
+#                    " INNER JOIN dbo.Temp as t",
+#                    " ON (p.VisitID = t.VisitID AND p.PersonnelID = t.PersonnelID AND p.PersonnelRoleID = t.PersonnelRoleID)")
+# 
+# #insert temp target table 
+# poolWithTransaction(pool = conn, func = function(conn) {
+#   dbCreateTable(conn, "Temp", VP_SQLupdate)
+#   dbAppendTable(conn, "Temp", VP_SQLupdate)
+# 
+#   qry <- dbSendQuery(conn, sql.update)
+#   dbFetch(qry)
+#   dbClearResult(qry)
+#   dbRemoveTable(conn, "Temp")
+#   })
 ########## end update visit personell ######################################
 
 ## get Visit Personal table ID's, Global ID's, and last edited date. Compare with s123 crew table
@@ -84,32 +84,32 @@ WQactivityIDs <- dplyr::tbl(conn, dbplyr::in_schema("data", "WaterQualityActivit
 
 ############# For 2020 data only #####################################
 # This will populate the Water Quality Depth Profile table with the survey123 edited date and global ID from WQ reading where there are already records in the DB. Thats so the merge code will run properly later. after the iunitial update, it wont ever need doing again!
-WQR_SQLupdate <- wq %>%
-  inner_join(wqactivity.keys, by = c("parentglobalid" = "GlobalID")) %>%
-  select(WaterQualityActivityID = ID,
-         GlobalID = globalid,
-         Survey123_LastEditedDate,
-         IsDepthProfile,
-         MeasurementDepth_ft) %>%
-  unique()
-
-sql.update = paste0("UPDATE data.WaterQualityDepthProfile",
-                    " SET data.WaterQualityDepthProfile.GlobalID = t.GlobalID,",
-                    " data.WaterQualityDepthProfile.Survey123_LastEditedDate = t.Survey123_LastEditedDate",
-                    " FROM data.WaterQualityDepthProfile as p",
-                    " INNER JOIN dbo.Temp as t",
-                    " ON (p.WaterQualityActivityID = t.WaterQualityActivityID AND p.MeasurementDepth_ft = t.MeasurementDepth_ft)")
-
-#insert temp target table 
-poolWithTransaction(pool = conn, func = function(conn) {
-  dbCreateTable(conn, "Temp", WQR_SQLupdate)
-  dbAppendTable(conn, "Temp", WQR_SQLupdate)
-  
-  qry <- dbSendQuery(conn, sql.update)
-  dbFetch(qry)
-  dbClearResult(qry)
-  dbRemoveTable(conn, "Temp")
-})
+# WQR_SQLupdate <- wq %>%
+#   inner_join(wqactivity.keys, by = c("parentglobalid" = "GlobalID")) %>%
+#   select(WaterQualityActivityID = ID,
+#          GlobalID = globalid,
+#          Survey123_LastEditedDate,
+#          IsDepthProfile,
+#          MeasurementDepth_ft) %>%
+#   unique()
+# 
+# sql.update = paste0("UPDATE data.WaterQualityDepthProfile",
+#                     " SET data.WaterQualityDepthProfile.GlobalID = t.GlobalID,",
+#                     " data.WaterQualityDepthProfile.Survey123_LastEditedDate = t.Survey123_LastEditedDate",
+#                     " FROM data.WaterQualityDepthProfile as p",
+#                     " INNER JOIN dbo.Temp as t",
+#                     " ON (p.WaterQualityActivityID = t.WaterQualityActivityID AND p.MeasurementDepth_ft = t.MeasurementDepth_ft)")
+# 
+# #insert temp target table 
+# poolWithTransaction(pool = conn, func = function(conn) {
+#   dbCreateTable(conn, "Temp", WQR_SQLupdate)
+#   dbAppendTable(conn, "Temp", WQR_SQLupdate)
+#   
+#   qry <- dbSendQuery(conn, sql.update)
+#   dbFetch(qry)
+#   dbClearResult(qry)
+#   dbRemoveTable(conn, "Temp")
+# })
 ########## end update WQ depth profile ######################################
 
 #get WQ reading table ID's, Global ID's
@@ -387,23 +387,23 @@ do3 <- wq %>%
 db$WQDissolvedOxygen <- rbind(do1, do2, do3) %>% arrange(WaterQualityDepthProfileID)
 
 ############# For 2020 data only #####################################
-#this will update the records currently in thr SQL database. only needs running once
-sql.update = paste0("UPDATE data.WaterQualityDepthProfileDO",
-                    " SET data.WaterQualityDepthProfileDO.GlobalID = t.GlobalID",
-                    " FROM data.WaterQualityDepthProfileDO as p",
-                    " INNER JOIN dbo.Temp as t",
-                    " ON (p.WaterQualityDepthProfileID = t.WaterQualityDepthProfileID AND p.MeasurementNum = t.MeasurementNum)")
-
-#insert temp target table 
-poolWithTransaction(pool = conn, func = function(conn) {
-  dbCreateTable(conn, "Temp", db$WQDissolvedOxygen)
-  dbAppendTable(conn, "Temp", db$WQDissolvedOxygen)
-  
-  qry <- dbSendQuery(conn, sql.update)
-  dbFetch(qry)
-  dbClearResult(qry)
-  dbRemoveTable(conn, "Temp")
-})
+# #this will update the records currently in thr SQL database. only needs running once
+# sql.update = paste0("UPDATE data.WaterQualityDepthProfileDO",
+#                     " SET data.WaterQualityDepthProfileDO.GlobalID = t.GlobalID",
+#                     " FROM data.WaterQualityDepthProfileDO as p",
+#                     " INNER JOIN dbo.Temp as t",
+#                     " ON (p.WaterQualityDepthProfileID = t.WaterQualityDepthProfileID AND p.MeasurementNum = t.MeasurementNum)")
+# 
+# #insert temp target table 
+# poolWithTransaction(pool = conn, func = function(conn) {
+#   dbCreateTable(conn, "Temp", db$WQDissolvedOxygen)
+#   dbAppendTable(conn, "Temp", db$WQDissolvedOxygen)
+#   
+#   qry <- dbSendQuery(conn, sql.update)
+#   dbFetch(qry)
+#   dbClearResult(qry)
+#   dbRemoveTable(conn, "Temp")
+# })
 ############## end update WQ DO table ########################
 do.keys <- uploadData(db$WQDissolvedOxygen, "data.WaterQualityDepthProfileDO", conn,keep.guid = TRUE)
 
@@ -436,23 +436,23 @@ ph3 <- wq %>%
 db$WQpH <- rbind(ph1, ph2, ph3) %>% arrange(WaterQualityDepthProfileID)
 
 ############################  For 2020 data only ############
-#this will update the records currently in thr SQL database. only needs running once
-sql.update = paste0("UPDATE data.WaterQualityDepthProfilepH",
-                    " SET data.WaterQualityDepthProfilepH.GlobalID = t.GlobalID",
-                    " FROM data.WaterQualityDepthProfilepH as p",
-                    " INNER JOIN dbo.Temp as t",
-                    " ON (p.WaterQualityDepthProfileID = t.WaterQualityDepthProfileID AND p.MeasurementNum = t.MeasurementNum)")
-
-#insert temp target table
-poolWithTransaction(pool = conn, func = function(conn) {
-  dbCreateTable(conn, "Temp", db$WQpH)
-  dbAppendTable(conn, "Temp", db$WQpH)
-  
-  qry <- dbSendQuery(conn, sql.update)
-  dbFetch(qry)
-  dbClearResult(qry)
-  dbRemoveTable(conn, "Temp")
-})
+# #this will update the records currently in thr SQL database. only needs running once
+# sql.update = paste0("UPDATE data.WaterQualityDepthProfilepH",
+#                     " SET data.WaterQualityDepthProfilepH.GlobalID = t.GlobalID",
+#                     " FROM data.WaterQualityDepthProfilepH as p",
+#                     " INNER JOIN dbo.Temp as t",
+#                     " ON (p.WaterQualityDepthProfileID = t.WaterQualityDepthProfileID AND p.MeasurementNum = t.MeasurementNum)")
+# 
+# #insert temp target table
+# poolWithTransaction(pool = conn, func = function(conn) {
+#   dbCreateTable(conn, "Temp", db$WQpH)
+#   dbAppendTable(conn, "Temp", db$WQpH)
+#   
+#   qry <- dbSendQuery(conn, sql.update)
+#   dbFetch(qry)
+#   dbClearResult(qry)
+#   dbRemoveTable(conn, "Temp")
+# })
 ################ end update WQ pH table######################
 ph.keys <- uploadData(db$WQpH, "data.WaterQualityDepthProfilepH", conn, keep.guid = TRUE)
 
@@ -484,23 +484,23 @@ spcond3 <- wq %>%
 db$WQSpCond <- rbind(spcond1, spcond2, spcond3) %>% arrange(WaterQualityDepthProfileID)
 
 ############################ For 2020 data only ############
-#this will update the records currently in thr SQL database. only needs running once
-sql.update = paste0("UPDATE data.WaterQualityDepthProfileSpCond",
-                    " SET data.WaterQualityDepthProfileSpCond.GlobalID = t.GlobalID",
-                    " FROM data.WaterQualityDepthProfileSpCond as p",
-                    " INNER JOIN dbo.Temp as t",
-                    " ON (p.WaterQualityDepthProfileID = t.WaterQualityDepthProfileID AND p.MeasurementNum = t.MeasurementNum)")
-
-#insert temp target table
-poolWithTransaction(pool = conn, func = function(conn) {
-  dbCreateTable(conn, "Temp", db$WQSpCond)
-  dbAppendTable(conn, "Temp", db$WQSpCond)
-  
-  qry <- dbSendQuery(conn, sql.update)
-  dbFetch(qry)
-  dbClearResult(qry)
-  dbRemoveTable(conn, "Temp")
-})
+# #this will update the records currently in thr SQL database. only needs running once
+# sql.update = paste0("UPDATE data.WaterQualityDepthProfileSpCond",
+#                     " SET data.WaterQualityDepthProfileSpCond.GlobalID = t.GlobalID",
+#                     " FROM data.WaterQualityDepthProfileSpCond as p",
+#                     " INNER JOIN dbo.Temp as t",
+#                     " ON (p.WaterQualityDepthProfileID = t.WaterQualityDepthProfileID AND p.MeasurementNum = t.MeasurementNum)")
+# 
+# #insert temp target table
+# poolWithTransaction(pool = conn, func = function(conn) {
+#   dbCreateTable(conn, "Temp", db$WQSpCond)
+#   dbAppendTable(conn, "Temp", db$WQSpCond)
+#   
+#   qry <- dbSendQuery(conn, sql.update)
+#   dbFetch(qry)
+#   dbClearResult(qry)
+#   dbRemoveTable(conn, "Temp")
+# })
 ############### end update WQ spcond table #######################
 spcond.keys <- uploadData(db$WQSpCond, "data.WaterQualityDepthProfileSpCond", conn, keep.guid = TRUE)
 
@@ -532,23 +532,23 @@ temp3 <- wq %>%
 db$WQTemp <- rbind(temp1, temp2, temp3) %>% arrange(WaterQualityDepthProfileID)
 
 ############################ For 2020 data only ############
-#this will update the records currently in thr SQL database. only needs running once
-sql.update = paste0("UPDATE data.WaterQualityDepthProfileTemperature",
-                    " SET data.WaterQualityDepthProfileTemperature.GlobalID = t.GlobalID",
-                    " FROM data.WaterQualityDepthProfileTemperature as p",
-                    " INNER JOIN dbo.Temp as t",
-                    " ON (p.WaterQualityDepthProfileID = t.WaterQualityDepthProfileID AND p.MeasurementNum = t.MeasurementNum)")
-
-#insert temp target table
-poolWithTransaction(pool = conn, func = function(conn) {
-  dbCreateTable(conn, "Temp", db$WQTemp)
-  dbAppendTable(conn, "Temp", db$WQTemp)
-  
-  qry <- dbSendQuery(conn, sql.update)
-  dbFetch(qry)
-  dbClearResult(qry)
-  dbRemoveTable(conn, "Temp")
-})
+# #this will update the records currently in thr SQL database. only needs running once
+# sql.update = paste0("UPDATE data.WaterQualityDepthProfileTemperature",
+#                     " SET data.WaterQualityDepthProfileTemperature.GlobalID = t.GlobalID",
+#                     " FROM data.WaterQualityDepthProfileTemperature as p",
+#                     " INNER JOIN dbo.Temp as t",
+#                     " ON (p.WaterQualityDepthProfileID = t.WaterQualityDepthProfileID AND p.MeasurementNum = t.MeasurementNum)")
+# 
+# #insert temp target table
+# poolWithTransaction(pool = conn, func = function(conn) {
+#   dbCreateTable(conn, "Temp", db$WQTemp)
+#   dbAppendTable(conn, "Temp", db$WQTemp)
+#   
+#   qry <- dbSendQuery(conn, sql.update)
+#   dbFetch(qry)
+#   dbClearResult(qry)
+#   dbRemoveTable(conn, "Temp")
+# })
 ################ end update WQ temp table ######################
 temp.keys <- uploadData(db$WQTemp, "data.WaterQualityDepthProfileTemperature", conn, keep.guid = TRUE)
 
@@ -615,3 +615,4 @@ chem.keys <- uploadData(db$WaterChemistryActivity, "data.WaterChemistryActivity"
 
 
 pool::poolClose(conn)
+

@@ -135,6 +135,11 @@ SecchiActivityIDs <- dplyr::tbl(conn, dbplyr::in_schema("data", "ClarityActivity
 photo.types <- dplyr::tbl(conn, dbplyr::in_schema("ref", "PhotoDescriptionCode")) %>%
   dplyr::collect() %>%
   select(ID, Code)
+# Get camera card lookup
+camera.cards <- dplyr::tbl(conn, dbplyr::in_schema("ref", "CameraCard_Shared")) %>%
+  dplyr::collect() %>%
+  select(ID, Label)
+
 photo.table <- paste(gdb.path, "Photos__ATTACH", sep = "\\")
 visit.data <- paste(gdb.path, "MOJN_STLK_AnnualLakeVisit", sep = "\\")
 photo.data <- paste(gdb.path, "Photos", sep = "\\")
@@ -148,11 +153,65 @@ source_python("download-photos.py")
 photo.type.dict <- py_dict(photo.types$ID, photo.types$Code)
 lake.code.dict <- py_dict(sites$ID, sites$CodeFull)
 
-## Download photos from annual lake visits
+## Download internal photos from annual lake visits
 annual_photos <- download_visit_photos(attTable = photo.table, photoFeatureClass = photo.data, visitFeatureClass = visit.data, dataPhotoLocation = photo.dest, originalsLocation = originals.dest, photoCodeDict = photo.type.dict, lakeCodeDict = lake.code.dict)
 annual_photos <- as_tibble(annual_photos)
 annual_photos$VisitGUID <- str_remove_all(annual_photos$VisitGUID, "\\{|\\}")
 annual_photos$GlobalID <- str_remove_all(annual_photos$GlobalID, "\\{|\\}")
+
+## Find and rename external photos from annual lake visits
+annual_ext_photos <- visit %>% 
+  filter(IsInternalCamera == "N") %>% 
+  select(CameraCardID, StartDateTime, LakeCode, globalid) %>%
+  inner_join(select(sites, ID, CodeFull), by = c("LakeCode" = "ID")) %>%
+  mutate(LakeCode = CodeFull) %>%
+  inner_join(camera.cards, by = c("CameraCardID" = "ID")) %>%
+  rename(CameraCard = Label,
+         VisitGUID = globalid) %>%
+  inner_join(photos, by = c("VisitGUID" = "parentglobalid")) %>%
+  rename(GlobalID = globalid) %>%
+  inner_join(photo.types, by = c("PhotoTypeID" = "ID")) %>%
+  rename(PhotoType = Code) %>%
+  mutate(SearchFilePath = normalizePath(file.path(originals.dest, CameraCard, format.Date(StartDateTime, "%Y_%m_%d")), mustWork = FALSE),
+         SearchFilePattern = paste0("*.", ExternalFileNumber, ".jpg"))
+
+annual_ext_photos$OrigFileName <- NA
+for (i in 1:nrow(annual_ext_photos)) {
+  OrigFile = list.files(annual_ext_photos$SearchFilePath[[i]], pattern = annual_ext_photos$SearchFilePattern[[i]], ignore.case = TRUE)
+  if (length(OrigFile) == 1) {
+    annual_ext_photos$OrigFileName[[i]] <- OrigFile
+  } else if (length(OrigFile) == 0) {
+    warning(paste0("File number ", annual_ext_photos$ExternalFileNumber[[i]], ", taken at ", annual_ext_photos$LakeCode[[i]], ", not found in ", annual_ext_photos$SearchFilePath[[i]]), immediate. = TRUE)
+  } else if (length(OrigFile) > 1) {
+    warning(paste0("More than one photo found matching file number ", annual_ext_photos$ExternalFileNumber[[i]],  ", taken at ", annual_ext_photos$SiteCode[[i]], " found in ", annual_ext_photos$SearchFilePath[[i]]))
+  }
+}
+
+# Filter out missing external photos
+rows_before <- nrow(annual_ext_photos)
+annual_ext_photos %<>% 
+  filter(!is.na(OrigFileName)) %>%
+  mutate(OriginalFilePath = normalizePath(file.path(SearchFilePath, OrigFileName), mustWork = FALSE),
+         NewFilename = paste(LakeCode, format.Date(StartDateTime, "%Y%m%d"), PhotoType, ExternalFileNumber, sep = "_"),
+         NewFilename = paste0(NewFilename, ".jpg"),
+         RenamedFilePath = normalizePath(file.path(photo.dest, LakeCode, NewFilename), mustWork = FALSE)) %>%
+  select(VisitGUID, OriginalFilePath, RenamedFilePath, GlobalID)
+if (rows_before > nrow(annual_ext_photos)) {
+  warning("Some photos could not be located (see warnings above). The records for these photos were NOT uploaded to the database.")
+}
+
+# Copy external photos from incoming to renamed
+for (i in 1:nrow(annual_ext_photos)) {
+  orig.path <- annual_ext_photos$OriginalFilePath[i]
+  new.path <- annual_ext_photos$RenamedFilePath[i]
+  if (!dir.exists(dirname(new.path))) {
+    dir.create(dirname(new.path), recursive = TRUE)
+    # cat(dirname(new.path))
+  }
+  file.copy(from = orig.path, to = new.path, overwrite = FALSE, copy.mode = FALSE, copy.date = FALSE)
+}
+
+annual_photos <- rbind(annual_photos, annual_ext_photos)
 #--------------------------------#
 
 

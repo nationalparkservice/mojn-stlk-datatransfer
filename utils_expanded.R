@@ -33,7 +33,7 @@ uploadData <- function(df, table.name, conn, has.guid = TRUE, keep.guid = FALSE,
     sql.insert <- paste0("MERGE ", table.name, " t USING dbo.TempSource s ","ON (s.GlobalID = t.GlobalID) WHEN MATCHED THEN UPDATE SET ", updateSet," WHEN NOT MATCHED BY TARGET THEN INSERT (", cols, ") VALUES (", scols, ") ",
                          "OUTPUT ", paste0("INSERTED.", colnames.key, collapse = ", "), ", INSERTED.", col.guid, ", $action INTO InsertOutput ;")
     
-    #print(sql.insert)# testing
+    # print(sql.insert)# testing
     sql.inserted <- "SELECT * FROM InsertOutput"
     
     # Perform insert
@@ -48,12 +48,13 @@ uploadData <- function(df, table.name, conn, has.guid = TRUE, keep.guid = FALSE,
       dbCreateTable(conn, "TempSource", df)
       dbAppendTable(conn, "TempSource", df)
       
-      # # If needed, create a temporary column to store the GUID
-      # if (str_length(sql.before) > 0) {
-      #   dbSendQuery(conn, sql.before)
-      # }
+      # If needed, create a temporary column to store the GUID
+      if (str_length(sql.before) > 0) {
+        dbSendQuery(conn, sql.before)
+      }
       
       qry <- dbSendQuery(conn, sql.insert)
+      #dbBind(qry, as.list(df))
       dbFetch(qry)
       dbClearResult(qry)
       
@@ -65,22 +66,20 @@ uploadData <- function(df, table.name, conn, has.guid = TRUE, keep.guid = FALSE,
       dbRemoveTable(conn, "InsertOutput")
       dbRemoveTable(conn, "TempSource")
       
-      # # If needed, delete the temporary GUID column
-      # if (str_length(sql.after) > 0) {
-      #   dbSendQuery(conn, sql.after)
-      # }
+      # If needed, delete the temporary GUID column
+      if (str_length(sql.after) > 0) {
+        dbSendQuery(conn, sql.after)
+      }
       
       return(inserted)
     })
     
-    # if (!has.guid) {
-    #   keys <- select(keys, ID)
-    # }
+    if (!has.guid) {
+      keys <- select(keys, ID)
+    }
     
     keys[col.guid] <- tolower(keys[[col.guid]])
     return(keys)
-    # end of if to keep guid
-
 
   } else if (has.guid & !keep.guid) {  
     # Create temporary GUID column in order to return a GUID-ID crosswalk
@@ -99,7 +98,7 @@ uploadData <- function(df, table.name, conn, has.guid = TRUE, keep.guid = FALSE,
     sql.before = paste0("ALTER TABLE ", table.name, " ADD GUID_DeleteMe uniqueidentifier")
     sql.after = paste0("ALTER TABLE ", table.name, " DROP COLUMN GUID_DeleteMe")
     
-    #print(sql.insert)# testing
+    # print(sql.insert)# testing
     sql.inserted <- "SELECT * FROM InsertOutput"
     
     # Perform insert
@@ -109,6 +108,7 @@ uploadData <- function(df, table.name, conn, has.guid = TRUE, keep.guid = FALSE,
       temp.types[[col.guid]] <- character()
       temp.table <- tibble(!!!temp.types)
       dbCreateTable(conn, "InsertOutput", temp.table)
+
       
       # If needed, create a temporary column to store the GUID
       if (str_length(sql.before) > 0) {
@@ -126,6 +126,7 @@ uploadData <- function(df, table.name, conn, has.guid = TRUE, keep.guid = FALSE,
       dbClearResult(res)
       
       dbRemoveTable(conn, "InsertOutput")
+
       
       # If needed, delete the temporary GUID column
       if (str_length(sql.after) > 0) {
@@ -141,7 +142,6 @@ uploadData <- function(df, table.name, conn, has.guid = TRUE, keep.guid = FALSE,
     
     keys[col.guid] <- tolower(keys[[col.guid]])
     return(keys)
-    # end of else to not keep guid
     
   } else if (!has.guid) {  # No GUID at all
     cols <- names(df)  # Assume names of columns, incl. GUID column, match those in the database exactly
@@ -154,7 +154,7 @@ uploadData <- function(df, table.name, conn, has.guid = TRUE, keep.guid = FALSE,
                          "VALUES (",
                          placeholders,
                          ") ")
-    print(sql.insert)# testing
+    # print(sql.insert)# testing
     sql.inserted <- "SELECT * FROM InsertOutput"
     
     # Perform insert
@@ -164,6 +164,9 @@ uploadData <- function(df, table.name, conn, has.guid = TRUE, keep.guid = FALSE,
       temp.types[[col.guid]] <- character()
       temp.table <- tibble(!!!temp.types)
       dbCreateTable(conn, "InsertOutput", temp.table)
+      # add temp tables
+      dbCreateTable(conn, "TempSource", df)
+      dbAppendTable(conn, "TempSource", df)
       
       # If needed, create a temporary column to store the GUID
       if (str_length(sql.before) > 0) {
@@ -181,6 +184,7 @@ uploadData <- function(df, table.name, conn, has.guid = TRUE, keep.guid = FALSE,
       dbClearResult(res)
       
       dbRemoveTable(conn, "InsertOutput")
+
       
       # If needed, delete the temporary GUID column
       if (str_length(sql.after) > 0) {
@@ -197,6 +201,5 @@ uploadData <- function(df, table.name, conn, has.guid = TRUE, keep.guid = FALSE,
     keys[col.guid] <- tolower(keys[[col.guid]])
     return(keys)
   }
-  # end of else for no guid at all
 
 }

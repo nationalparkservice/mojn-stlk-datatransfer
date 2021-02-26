@@ -28,8 +28,10 @@ visit <- visit$features$attributes %>%
   as_tibble() %>%
   mutate_if(is_character, na_if, "") %>%
   mutate_if(is.numeric, na_if, -9999) %>%
-  mutate(StartTime = as.POSIXct(StartTime / 1000, origin = "1970-01-01", tz = "America/Los_Angeles")) %>%
-  rename(StartDateTime = StartTime)
+  mutate(StartTime = as.POSIXct(StartTime / 1000, origin = "1970-01-01", tz = "America/Los_Angeles"),
+         EditDate = as.POSIXct(EditDate/1000, origin = "1970-01-01", tz = "America/Los_Angeles")) %>%
+  rename(StartDateTime = StartTime, Survey123_LastEditedDate = EditDate) %>% 
+  mutate(Survey123_LastEditedDate = as.character(Survey123_LastEditedDate))
 
 resp.dl <- GET(paste0(service_url, "/1/query"),
   query = list(
@@ -44,7 +46,10 @@ sensor.dl <- cbind(sensor.dl$features$attributes, sensor.dl$features$geometry) %
   mutate(wkid = sensor.dl$spatialReference$wkid) %>%
   as_tibble() %>%
   mutate_if(is_character, na_if, "") %>%
-  mutate_if(is.numeric, na_if, -9999)
+  mutate_if(is.numeric, na_if, -9999) %>% 
+  mutate(EditDate = as.POSIXct(EditDate/1000, origin = "1970-01-01", tz = "America/Los_Angeles")) %>%
+  rename(Survey123_LastEditedDate = EditDate)%>% 
+  mutate(Survey123_LastEditedDate = as.character(Survey123_LastEditedDate))
 
 resp.deploy <- GET(paste0(service_url, "/2/query"),
   query = list(
@@ -54,12 +59,16 @@ resp.deploy <- GET(paste0(service_url, "/2/query"),
     token = agol_token$token
   )
 )
+
 sensor.deploy <- fromJSON(content(resp.deploy, type = "text", encoding = "UTF-8"))
 sensor.deploy <- cbind(sensor.deploy$features$attributes, sensor.deploy$features$geometry) %>%
   mutate(wkid = sensor.deploy$spatialReference$wkid) %>%
   as_tibble() %>%
   mutate_if(is_character, na_if, "") %>%
-  mutate_if(is.numeric, na_if, -9999)
+  mutate_if(is.numeric, na_if, -9999) %>% 
+  mutate(EditDate = as.POSIXct(EditDate/1000, origin = "1970-01-01", tz = "America/Los_Angeles")) %>%
+  rename(Survey123_LastEditedDate = EditDate)%>% 
+  mutate(Survey123_LastEditedDate = as.character(Survey123_LastEditedDate))
 
 resp.photos <- GET(paste0(service_url, "/3/query"),
   query = list(
@@ -74,7 +83,10 @@ photos <- cbind(photos$features$attributes, photos$features$geometry) %>%
   mutate(wkid = photos$spatialReference$wkid) %>%
   as_tibble() %>%
   mutate_if(is_character, na_if, "") %>%
-  mutate_if(is.numeric, na_if, -9999)
+  mutate_if(is.numeric, na_if, -9999) %>% 
+  mutate(EditDate = as.POSIXct(EditDate/1000, origin = "1970-01-01", tz = "America/Los_Angeles")) %>%
+  rename(Survey123_LastEditedDate = EditDate)%>% 
+  mutate(Survey123_LastEditedDate = as.character(Survey123_LastEditedDate))
 
 resp.crew <- GET(paste0(service_url, "/4/query"),
   query = list(
@@ -88,7 +100,10 @@ crew <- fromJSON(content(resp.crew, type = "text", encoding = "UTF-8"))
 crew <- crew$features$attributes %>%
   as_tibble() %>%
   mutate_if(is_character, na_if, "") %>%
-  mutate_if(is.numeric, na_if, -9999)
+  mutate_if(is.numeric, na_if, -9999) %>% 
+  mutate(EditDate = as.POSIXct(EditDate/1000, origin = "1970-01-01", tz = "America/Los_Angeles")) %>%
+  rename(Survey123_LastEditedDate = EditDate)%>% 
+  mutate(Survey123_LastEditedDate = as.character(Survey123_LastEditedDate))
 
 resp.wq <- GET(paste0(service_url, "/5/query"),
   query = list(
@@ -102,7 +117,10 @@ wq <- fromJSON(content(resp.wq, type = "text", encoding = "UTF-8"))
 wq <- wq$features$attributes %>%
   as_tibble() %>%
   mutate_if(is_character, na_if, "") %>%
-  mutate_if(is.numeric, na_if, -9999)
+  mutate_if(is.numeric, na_if, -9999) %>% 
+  mutate(EditDate = as.POSIXct(EditDate/1000, origin = "1970-01-01", tz = "America/Los_Angeles")) %>%
+  rename(Survey123_LastEditedDate = EditDate)%>% 
+  mutate(Survey123_LastEditedDate = as.character(Survey123_LastEditedDate))
 
 resp.secchi <- GET(paste0(service_url, "/6/query"),
   query = list(
@@ -116,7 +134,10 @@ secchi <- fromJSON(content(resp.secchi, type = "text", encoding = "UTF-8"))
 secchi <- secchi$features$attributes %>%
   as_tibble() %>%
   mutate_if(is_character, na_if, "") %>%
-  mutate_if(is.numeric, na_if, -9999)
+  mutate_if(is.numeric, na_if, -9999) %>% 
+  mutate(EditDate = as.POSIXct(EditDate/1000, origin = "1970-01-01", tz = "America/Los_Angeles")) %>%
+  rename(Survey123_LastEditedDate = EditDate)%>% 
+  mutate(Survey123_LastEditedDate = as.character(Survey123_LastEditedDate))
 
 
 ## Get lake levels data
@@ -134,8 +155,10 @@ levels <- levels$features$attributes %>%
   as_tibble() %>%
   mutate_if(is_character, na_if, "") %>%
   mutate_if(is.numeric, na_if, -9999) %>%
-  mutate(StartTime = as.POSIXct(StartTime / 1000, origin = "1970-01-01", tz = "America/Los_Angeles")) %>%
-  rename(StartDateTime = StartTime)
+  mutate(StartTime = as.POSIXct(StartTime / 1000, origin = "1970-01-01", tz = "America/Los_Angeles"),
+         EditDate = as.POSIXct(EditDate/1000, origin = "1970-01-01", tz = "America/Los_Angeles")) %>%
+  rename(StartDateTime = StartTime, Survey123_LastEditedDate = EditDate)%>% 
+  mutate(Survey123_LastEditedDate = as.character(Survey123_LastEditedDate))
 
 resp.levels.crew <- GET(paste0(service_url, "/1/query"),
   query = list(
@@ -149,4 +172,9 @@ levels.crew <- fromJSON(content(resp.levels.crew, type = "text", encoding = "UTF
 levels.crew <- levels.crew$features$attributes %>%
   as_tibble() %>%
   mutate_if(is_character, na_if, "") %>%
-  mutate_if(is.numeric, na_if, -9999)
+  mutate_if(is.numeric, na_if, -9999) %>% 
+  mutate(EditDate = as.POSIXct(EditDate/1000, origin = "1970-01-01", tz = "America/Los_Angeles")) %>%
+  rename(Survey123_LastEditedDate = EditDate)%>% 
+  mutate(Survey123_LastEditedDate = as.character(Survey123_LastEditedDate))
+
+# rm(list=ls(pattern="^resp."))

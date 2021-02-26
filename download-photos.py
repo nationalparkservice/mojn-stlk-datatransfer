@@ -31,7 +31,8 @@ def download_visit_photos(attTable, photoFeatureClass, visitFeatureClass, dataPh
 		att_id = str(item[2])
 		filename = prefix + "_" + att_id.zfill(4) + ".jpg"  # zero-fill the attachment ID so that it is always 4 digits
 		# Check if folders for spring and/or date exist. If not, create them
-		data_photo_path = dataPhotoLocation + os.sep + lake + os.sep + year
+		# data_photo_path = dataPhotoLocation + os.sep + lake + os.sep + year
+		data_photo_path = dataPhotoLocation + os.sep + lake
 		orig_photo_path = originalsLocation + os.sep + time_folder
 		# Put a copy of photos in incoming photos folder
 		if not os.path.exists(orig_photo_path):

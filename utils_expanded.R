@@ -33,7 +33,7 @@ uploadData <- function(df, table.name, conn, has.guid = TRUE, keep.guid = FALSE,
     sql.insert <- paste0("MERGE ", table.name, " t USING dbo.TempSource s ","ON (s.GlobalID = t.GlobalID) WHEN MATCHED THEN UPDATE SET ", updateSet," WHEN NOT MATCHED BY TARGET THEN INSERT (", cols, ") VALUES (", scols, ") ",
                          "OUTPUT ", paste0("INSERTED.", colnames.key, collapse = ", "), ", INSERTED.", col.guid, ", $action INTO InsertOutput ;")
     
-    print(sql.insert)# testing
+    # print(sql.insert)# testing
     sql.inserted <- "SELECT * FROM InsertOutput"
     
     # Perform insert
@@ -98,7 +98,7 @@ uploadData <- function(df, table.name, conn, has.guid = TRUE, keep.guid = FALSE,
     sql.before = paste0("ALTER TABLE ", table.name, " ADD GUID_DeleteMe uniqueidentifier")
     sql.after = paste0("ALTER TABLE ", table.name, " DROP COLUMN GUID_DeleteMe")
     
-    print(sql.insert)# testing
+    # print(sql.insert)# testing
     sql.inserted <- "SELECT * FROM InsertOutput"
     
     # Perform insert
@@ -154,7 +154,7 @@ uploadData <- function(df, table.name, conn, has.guid = TRUE, keep.guid = FALSE,
                          "VALUES (",
                          placeholders,
                          ") ")
-    print(sql.insert)# testing
+    # print(sql.insert)# testing
     sql.inserted <- "SELECT * FROM InsertOutput"
     
     # Perform insert
